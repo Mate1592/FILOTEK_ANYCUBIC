@@ -1,0 +1,22 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "Node16",
+    "moduleResolution": "Node16",
+    "lib": ["ES2022"],
+    "types": ["node"],
+    "outDir": "../dist-electron",
+    "rootDir": "..",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "sourceMap": false
+  },
+  "include": [
+    "./**/*.ts",
+    "../src/shared/**/*.ts",
+    "../src/lib/colorMath.ts",
+    "../src/lib/gcodeParser.ts",
+    "../src/lib/roll.ts"
+  ]
+}

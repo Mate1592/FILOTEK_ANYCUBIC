@@ -1,0 +1,332 @@
+@import 'tailwindcss';
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ============================================================
+   Filoteca — tokens de diseño
+   Grafito + lima "boquilla caliente". Ámbar y coral solo para alertas.
+   ============================================================ */
+:root {
+  --bg: #f3f2ee;
+  --bg-grain: #ebe9e3;
+  --surface-1: #ffffff;
+  --surface-2: #f8f7f4;
+  --surface-3: #efede8;
+  --elevated: #ffffff;
+  --line: rgb(24 24 16 / 0.08);
+  --line-strong: rgb(24 24 16 / 0.15);
+  --text: #16171a;
+  --text-muted: #565a61;
+  --text-faint: #6f737a;
+  --accent: #b9ec4a;
+  --accent-strong: #a6dc2c;
+  --accent-ink: #101207;
+  --accent-text: #4a7400;
+  --accent-glow: rgb(150 210 30 / 0.35);
+  --warn: #e39a1b;
+  --warn-text: #94570a;
+  --warn-soft: rgb(227 154 27 / 0.14);
+  --crit: #e5482f;
+  --crit-text: #b52a15;
+  --crit-soft: rgb(229 72 47 / 0.12);
+  --ok: #3aa776;
+  --spool-plastic: #2a2c31;
+  --spool-plastic-hi: #4a4d55;
+  --shadow-color: 30 28 20;
+  --shadow-sm: 0 1px 2px rgb(var(--shadow-color) / 0.06), 0 1px 1px rgb(var(--shadow-color) / 0.04);
+  --shadow-md: 0 2px 4px rgb(var(--shadow-color) / 0.05), 0 8px 24px -6px rgb(var(--shadow-color) / 0.12);
+  --shadow-lg: 0 4px 8px rgb(var(--shadow-color) / 0.06), 0 24px 48px -12px rgb(var(--shadow-color) / 0.22);
+  --glass: rgb(255 255 255 / 0.72);
+  --scroll-thumb: rgb(0 0 0 / 0.18);
+  color-scheme: light;
+}
+
+.dark {
+  --bg: #0c0d0f;
+  --bg-grain: #111215;
+  --surface-1: #131417;
+  --surface-2: #17191c;
+  --surface-3: #1f2125;
+  --elevated: #1a1c20;
+  --line: rgb(255 255 255 / 0.065);
+  --line-strong: rgb(255 255 255 / 0.12);
+  --text: #ededec;
+  --text-muted: #a3a6ad;
+  --text-faint: #7d818a;
+  --accent: #c6f45e;
+  --accent-strong: #d4fb78;
+  --accent-ink: #0e1105;
+  --accent-text: #c6f45e;
+  --accent-glow: rgb(198 244 94 / 0.28);
+  --warn: #f5b041;
+  --warn-text: #f7bd5c;
+  --warn-soft: rgb(245 176 65 / 0.13);
+  --crit: #ff6a55;
+  --crit-text: #ff8573;
+  --crit-soft: rgb(255 106 85 / 0.13);
+  --ok: #5fd4a0;
+  --spool-plastic: #1c1d21;
+  --spool-plastic-hi: #3a3d44;
+  --shadow-color: 0 0 0;
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.4);
+  --shadow-md: 0 2px 6px rgb(0 0 0 / 0.35), 0 10px 28px -8px rgb(0 0 0 / 0.6);
+  --shadow-lg: 0 6px 12px rgb(0 0 0 / 0.4), 0 30px 60px -14px rgb(0 0 0 / 0.75);
+  --glass: rgb(22 23 27 / 0.72);
+  --scroll-thumb: rgb(255 255 255 / 0.14);
+  color-scheme: dark;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface-1: var(--surface-1);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+  --color-elevated: var(--elevated);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-text: var(--text);
+  --color-muted: var(--text-muted);
+  --color-faint: var(--text-faint);
+  --color-accent: var(--accent);
+  --color-accent-strong: var(--accent-strong);
+  --color-accent-ink: var(--accent-ink);
+  --color-accent-text: var(--accent-text);
+  --color-warn: var(--warn);
+  --color-warn-text: var(--warn-text);
+  --color-warn-soft: var(--warn-soft);
+  --color-crit: var(--crit);
+  --color-crit-text: var(--crit-text);
+  --color-crit-soft: var(--crit-soft);
+  --color-ok: var(--ok);
+
+  --font-display: 'Bricolage Grotesque Variable', 'Segoe UI', sans-serif;
+  --font-sans: 'Inter Variable', 'Segoe UI', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono Variable', 'Cascadia Mono', Consolas, monospace;
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
+  --radius-2xl: 26px;
+
+  --shadow-sm: var(--shadow-sm);
+  --shadow-md: var(--shadow-md);
+  --shadow-lg: var(--shadow-lg);
+
+  /* Curvas de animación (espejo de src/lib/motion.ts) */
+  --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in-out-soft: cubic-bezier(0.65, 0, 0.35, 1);
+  --ease-snap: cubic-bezier(0.3, 1.4, 0.5, 1);
+}
+
+/* ------------------------------------------------------------ base */
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+  font-feature-settings: 'cv11', 'ss01';
+  overflow: hidden;
+  user-select: none;
+}
+
+input,
+textarea,
+[contenteditable] {
+  user-select: text;
+}
+
+.font-mono,
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+::selection {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
+:focus {
+  outline: none;
+}
+:focus-visible {
+  outline: 2px solid var(--accent-text);
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+
+/* scrollbars finas */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scroll-thumb) transparent;
+}
+
+/* región arrastrable de la barra de título */
+.drag {
+  -webkit-app-region: drag;
+}
+.no-drag {
+  -webkit-app-region: no-drag;
+}
+
+/* textura sutil del fondo: rejilla de taller */
+.workbench-bg {
+  background-color: var(--bg);
+  background-image:
+    radial-gradient(circle at 1px 1px, var(--line) 1px, transparent 0);
+  background-size: 22px 22px;
+}
+
+/* Transición de tema con View Transitions (revelado circular) */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+::view-transition-new(root) {
+  z-index: 2;
+}
+
+/* Transición de tema de respaldo */
+.theme-fade,
+.theme-fade * {
+  transition:
+    background-color 380ms var(--ease-in-out-soft),
+    border-color 380ms var(--ease-in-out-soft),
+    color 380ms var(--ease-in-out-soft),
+    fill 380ms var(--ease-in-out-soft) !important;
+}
+
+/* Pulso de bajo stock: solo opacidad y escala (GPU) */
+@keyframes low-pulse {
+  0%,
+  100% {
+    opacity: 0.15;
+    transform: scale(0.98);
+  }
+  50% {
+    opacity: 0.6;
+    transform: scale(1.02);
+  }
+}
+.pulse-warn {
+  animation: low-pulse 2.8s var(--ease-in-out-soft) infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.pulse-crit {
+  animation: low-pulse 1.6s var(--ease-in-out-soft) infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+/* Brillo del acabado seda: barrido lento */
+@keyframes sheen-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Inputs */
+.field {
+  width: 100%;
+  height: 36px;
+  padding: 0 12px;
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  color: var(--text);
+  font-size: 13.5px;
+  transition:
+    border-color 160ms var(--ease-out-soft),
+    box-shadow 160ms var(--ease-out-soft),
+    background-color 160ms;
+}
+.field:hover {
+  border-color: var(--line-strong);
+}
+.field:focus {
+  border-color: var(--accent-text);
+  box-shadow: 0 0 0 3px var(--accent-glow);
+  outline: none;
+}
+textarea.field {
+  height: auto;
+  padding: 10px 12px;
+  resize: vertical;
+}
+select.field {
+  appearance: none;
+  padding-right: 30px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+}
+select.field option {
+  background: var(--elevated);
+  color: var(--text);
+}
+input[type='color'].swatch {
+  -webkit-appearance: none;
+  appearance: none;
+  border: none;
+  padding: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  cursor: pointer;
+  background: none;
+}
+input[type='color'].swatch::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+input[type='color'].swatch::-webkit-color-swatch {
+  border: 1px solid var(--line-strong);
+  border-radius: 10px;
+}
+input[type='number']::-webkit-inner-spin-button {
+  opacity: 0.4;
+}
+
+.label {
+  display: block;
+  font-size: 11.5px;
+  font-weight: 550;
+  letter-spacing: 0.02em;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+
+.kbd {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  padding: 1px 5px;
+  border-radius: 5px;
+  border: 1px solid var(--line-strong);
+  border-bottom-width: 2px;
+  color: var(--text-muted);
+  background: var(--surface-2);
+}
+
+/* Las tarjetas fuera de pantalla no se pintan: clave con 200+ rollos */
+.cv-auto {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 330px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulse-warn,
+  .pulse-crit {
+    animation: none;
+    opacity: 0.45;
+  }
+}

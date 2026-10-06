@@ -1,0 +1,48 @@
+name: Compilar Filoteca (Windows)
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+  workflow_dispatch:
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+
+    steps:
+      - name: Descargar repositorio
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Generar iconos
+        run: node scripts/gen-icons.mjs
+
+      - name: Verificar tipos TypeScript
+        run: npm run typecheck
+
+      - name: Compilar Frontend y Proceso Principal
+        run: npm run build
+
+      - name: Empaquetar ejecutable Windows (.exe)
+        run: npx electron-builder --win --x64 --publish never
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Subir artefactos (.exe)
+        uses: actions/upload-artifact@v4
+        with:
+          name: Filoteca-Windows-x64
+          path: |
+            release/*.exe
+            release/*.blockmap
+          retention-days: 14

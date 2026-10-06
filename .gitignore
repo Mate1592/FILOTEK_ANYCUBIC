@@ -1,0 +1,31 @@
+# Dependencias
+node_modules/
+.pnp
+.pnp.js
+
+# Compilación y ejecutables generados
+dist/
+dist-electron/
+release/
+
+# Datos temporales de pruebas y profiling
+.perf-userdata/
+screenshots/
+*.log
+npm-debug.log*
+
+# Bases de datos SQLite locales de prueba
+*.db
+*.sqlite
+*.sqlite3
+
+# Entornos y secretos
+.env
+.env.local
+.env.*.local
+
+# Sistema operativo y editores
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

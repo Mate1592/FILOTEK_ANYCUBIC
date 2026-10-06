@@ -1,0 +1,55 @@
+name: Publicar Release de Filoteca
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: 'Nombre del Tag (ej. v1.0.1)'
+        required: true
+        default: 'v1.0.1'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+
+    steps:
+      - name: Descargar repositorio
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Ejecutar pruebas unitarias de G-code y color
+        run: npm run test:gcode
+
+      - name: Compilar frontend y proceso principal
+        run: npm run build
+
+      - name: Empaquetar Electron (Portable + Instalador NSIS)
+        run: npx electron-builder --win --x64 --publish never
+
+      - name: Publicar Release en GitHub con Ejecutables
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name || inputs.tag_name }}
+          files: |
+            release/*.exe
+            release/*.blockmap
+            release/latest.yml
+          generate_release_notes: true
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
