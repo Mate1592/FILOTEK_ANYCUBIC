@@ -20,6 +20,8 @@ import {
   Printer,
   Terminal,
   Copy,
+  Globe,
+  Sparkles,
 } from 'lucide-react';
 import type { ExportBundle, ThemePref } from '../../shared/types';
 import { useStore } from '../../store/useStore';
@@ -189,6 +191,61 @@ export function SettingsView() {
               <span className="text-xs">{label}</span>
             </button>
           ))}
+        </div>
+      </div>
+
+      {/* Idioma y Tour de bienvenida */}
+      <div className="p-5 rounded-2xl bg-surface-1 border border-line shadow-xs space-y-4">
+        <div>
+          <label className="label flex items-center gap-1.5">
+            <Globe size={16} className="text-accent-text" />
+            <span>Idioma de la interfaz / Language</span>
+          </label>
+          <p className="text-xs text-muted mt-0.5">
+            Selecciona el idioma principal para las pestañas y guías del taller.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-3 gap-3">
+          {[
+            { code: 'es', label: 'Español', flag: '🇨🇴' },
+            { code: 'en', label: 'English', flag: '🇺🇸' },
+            { code: 'pt', label: 'Português', flag: '🇧🇷' },
+          ].map((l) => (
+            <button
+              key={l.code}
+              type="button"
+              onClick={() => setSetting('language', l.code as any)}
+              className={`p-3 rounded-xl border flex items-center justify-center gap-2 transition-all cursor-pointer ${
+                (settings.language || 'es') === l.code
+                  ? 'bg-accent/15 border-accent text-accent-text font-bold shadow-xs'
+                  : 'bg-surface-2 border-line text-muted hover:text-text'
+              }`}
+            >
+              <span>{l.flag}</span>
+              <span className="text-xs">{l.label}</span>
+            </button>
+          ))}
+        </div>
+
+        <div className="pt-3 border-t border-line/60 flex items-center justify-between">
+          <div>
+            <span className="text-xs font-medium text-text block">Tour interactivo de bienvenida</span>
+            <span className="text-[11px] text-faint">
+              Vuelve a ver la guía de introducción paso a paso cuando quieras.
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              setSetting('onboardingCompleted', false);
+              toast({ kind: 'info', title: 'Tour reiniciado', body: 'Mostrando guía de bienvenida...' });
+            }}
+            className="px-3.5 py-2 rounded-xl bg-surface-2 hover:bg-surface-3 text-xs font-medium text-text border border-line transition-all flex items-center gap-1.5 cursor-pointer"
+          >
+            <Sparkles size={14} className="text-accent-text" />
+            <span>Repetir tour</span>
+          </button>
         </div>
       </div>
 

@@ -10,7 +10,7 @@ release/
 
 # Datos temporales de pruebas y profiling
 .perf-userdata/
-screenshots/
+/screenshots/
 *.log
 npm-debug.log*
 

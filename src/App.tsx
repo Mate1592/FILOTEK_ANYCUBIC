@@ -11,6 +11,7 @@ import { RollEditorModal } from './components/spool/RollEditorModal';
 import { QuickUseModal } from './components/spool/QuickUseModal';
 import { InboxView } from './components/inbox/InboxView';
 import { CompanionPromptModal } from './components/inbox/CompanionPromptModal';
+import { OnboardingModal } from './components/onboarding/OnboardingModal';
 import { Toasts } from './components/layout/Toasts';
 import { api, isDesktop } from './lib/api';
 import type { GcodeJob, Roll } from './shared/types';
@@ -349,6 +350,11 @@ export function App() {
             setView('inbox');
           }}
         />
+      )}
+
+      {/* Onboarding Tour for first-time users */}
+      {!settings.onboardingCompleted && loaded && (
+        <OnboardingModal />
       )}
 
       <Toasts />

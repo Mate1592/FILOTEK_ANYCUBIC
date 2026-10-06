@@ -157,9 +157,12 @@ export interface GcodeJob {
 }
 
 export type ThemePref = 'system' | 'light' | 'dark';
+export type Language = 'es' | 'en' | 'pt';
 
 export interface Settings {
   theme: ThemePref;
+  language: Language;
+  onboardingCompleted: boolean;
   lowThreshold: number; // %
   criticalThreshold: number; // %
   currency: string; // COP por defecto
@@ -186,6 +189,8 @@ export interface Settings {
 
 export const DEFAULT_SETTINGS: Settings = {
   theme: 'system',
+  language: 'es',
+  onboardingCompleted: false,
   lowThreshold: 20,
   criticalThreshold: 10,
   currency: 'COP',

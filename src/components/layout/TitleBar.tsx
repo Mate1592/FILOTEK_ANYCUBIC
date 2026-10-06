@@ -13,8 +13,10 @@ import {
 } from 'lucide-react';
 import { useStore, useUnreviewedGcodeCount, type View } from '../../store/useStore';
 import { isDesktop } from '../../lib/api';
+import { useI18n } from '../../lib/i18n';
 
 export function TitleBar() {
+  const { t } = useI18n();
   const view = useStore((s) => s.view);
   const setView = useStore((s) => s.setView);
   const query = useStore((s) => s.query);
@@ -70,7 +72,7 @@ export function TitleBar() {
           }`}
         >
           <Layers size={13} />
-          <span>Estantería</span>
+          <span>{t('tabShelf')}</span>
         </button>
 
         <button
@@ -83,7 +85,7 @@ export function TitleBar() {
           }`}
         >
           <BarChart3 size={13} />
-          <span>Estadísticas</span>
+          <span>{t('tabStats')}</span>
         </button>
 
         <button
@@ -96,7 +98,7 @@ export function TitleBar() {
           }`}
         >
           <Truck size={13} />
-          <span>Reabastecimiento</span>
+          <span>{t('tabReplenish')}</span>
         </button>
 
         <button
@@ -109,7 +111,7 @@ export function TitleBar() {
           }`}
         >
           <ShoppingCart size={13} />
-          <span>Compras</span>
+          <span>{t('tabShopping')}</span>
         </button>
 
         <button
@@ -122,7 +124,7 @@ export function TitleBar() {
           }`}
         >
           <Inbox size={13} />
-          <span>Bandeja</span>
+          <span>{t('tabInbox')}</span>
           {unreviewedCount > 0 && (
             <span className="px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold bg-accent text-accent-ink shadow-xs animate-pulse">
               {unreviewedCount}
@@ -140,7 +142,7 @@ export function TitleBar() {
           }`}
         >
           <SettingsIcon size={13} />
-          <span>Ajustes</span>
+          <span>{t('tabSettings')}</span>
         </button>
       </nav>
 
@@ -158,7 +160,7 @@ export function TitleBar() {
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Buscar bobina..."
+              placeholder={t('searchPlaceholder')}
               className="h-7 pl-7 pr-12 text-xs rounded-lg bg-surface-2 border border-line text-text placeholder:text-faint focus:border-accent-text focus:ring-1 focus:ring-accent outline-none w-36 lg:w-48 transition-all"
             />
             <kbd className="absolute right-1.5 top-1.5 font-mono text-[9px] px-1 py-0.2 rounded bg-surface-1 border border-line text-faint pointer-events-none">
@@ -172,10 +174,10 @@ export function TitleBar() {
           type="button"
           onClick={() => openEditor({ mode: 'new' })}
           className="h-7 px-2.5 rounded-lg bg-accent text-accent-ink hover:bg-accent-strong text-xs font-semibold flex items-center gap-1 shadow-xs transition-all active:scale-95 cursor-pointer"
-          title="Nuevo rollo (Ctrl+N)"
+          title={`${t('newRoll')} (Ctrl+N)`}
         >
           <Plus size={14} />
-          <span className="hidden md:inline">Nuevo rollo</span>
+          <span className="hidden md:inline">{t('newRoll')}</span>
           <kbd className="hidden lg:inline text-[9px] font-mono opacity-60 ml-0.5">
             ^N
           </kbd>
