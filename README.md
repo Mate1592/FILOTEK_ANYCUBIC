@@ -1,5 +1,12 @@
 # Filoteca 🧵
 
+![Windows Portable](https://img.shields.io/badge/Windows-Portable-0078D6?style=flat-square&logo=windows)
+![Electron 44](https://img.shields.io/badge/Electron-44-47848F?style=flat-square&logo=electron)
+![React 19](https://img.shields.io/badge/React-19-61DAFB?style=flat-square&logo=react)
+![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=flat-square&logo=typescript)
+![100% Offline](https://img.shields.io/badge/100%25-Offline-4CAF50?style=flat-square)
+![SQLite WASM](https://img.shields.io/badge/SQLite-WASM-003B57?style=flat-square&logo=sqlite)
+
 > **Inventario de filamento para impresión 3D** — Aplicación de escritorio moderna, fluida y 100% offline para Windows con renderizado procedural 3D, soporte nativo de pesos colombianos (COP), previsión de reabastecimiento e ingesta automática para Anycubic Slicer Next 2.0+ (Kobra X) y OrcaSlicer.
 
 Filoteca no es un CRUD genérico: está diseñada con la estética y el ritmo de un taller maker profesional (inspirada en la precisión y fluidez de herramientas como Linear y Raycast). Cada rollo se representa visualmente con un modelo paramétrico 3D en vista tres cuartos que refleja el color real, los acabados del material (mate, brillante, seda, translúcido, glitter) y el radio exacto de filamento restante calculado por volumen, acompañado de un anillo radial de uso estilo disco de almacenamiento.
@@ -8,58 +15,11 @@ Filoteca no es un CRUD genérico: está diseñada con la estética y el ritmo de
 
 ## ✨ Características Principales
 
-### 1. Bobinas 3D Procedurales en Tres Cuartos (Three.js PBR)
-- **Geometría procedural nativa:** Discos laterales con radios y perforaciones circulares, núcleo de cartón kraft y cilindro de filamento enrollado con textura de vueltas finas.
-- **Conservación física de volumen:** El radio del filamento restante responde a la física real del devanado:
-  $$R = \sqrt{r_{\text{núcleo}}^2 + f \cdot (R_{\text{lleno}}^2 - r_{\text{núcleo}}^2)}$$
-  donde $f = \frac{\text{peso restante}}{\text{peso inicial}}$. Un rollo al 33% luce como un tercio volumétrico auténtico; un rollo agotado muestra el carrete vacío.
-- **Materiales PBR realistas:** Presets específicos para cada acabado:
-  - *Mate:* Alta rugosidad y dispersión suave.
-  - *Brillante:* Capa transparente de barniz (*clearcoat* reflectante).
-  - *Seda:* Anisotropía y brillo nacarado (*sheen*).
-  - *Translúcido:* Transmisión de luz física y profundidad óptica.
-  - *Glitter:* Escintilación y destellos metálicos procedurales generados por ruido.
-- **Interacción táctil y física:** Tilt que sigue el cursor en la estantería, resorte elástico al hacer hover y rotación libre 360° con inercia mediante arrastre en el panel de detalle.
-- **Rendimiento optimizado y fallback:** Render bajo demanda con WebGL compartido, pausa fuera de pantalla, respeto de `prefers-reduced-motion` y fallback automático en SVG ultrarrápido para entornos sin aceleración por hardware.
-
-### 2. Moneda Local y Costes: Pesos Colombianos (COP)
-- **Formateo estándar colombiano:** Todos los importes se muestran en COP sin decimales (`$ 89.900`) mediante `Intl.NumberFormat('es-CO')`.
-- **Costo unitario por gramo:** Indicador de precisión con un decimal (`$ 89,9/g`).
-- **Entrada flexible:** Los campos numéricos aceptan indistintamente `"89900"` y `"89.900"`.
-- **Catálogo de demostración:** Precios realistas para bobinas de 1 kg en el mercado colombiano ($ 65.000 a $ 160.000 COP). Moneda configurable en Ajustes.
-
-### 3. Previsión Inteligente de Reabastecimiento
-- **Ventana móvil de 30 días:** Estimación del ritmo de consumo real por bobina y por material.
-- **Umbral de seguridad y días de entrega:** Margen configurable de entrega de pedidos (lead time) más reserva de seguridad.
-- **Priorización automática:**
-  - 🔴 **Crítica:** El stock se agotará antes de que un pedido nuevo pueda llegar al taller.
-  - 🟡 **Próxima:** El stock caerá por debajo del umbral de seguridad en los próximos 7 a 14 días.
-  - 🟢 **Planificada:** Stock suficiente para producción continua.
-- **Acción directa:** Botón de un clic para añadir bobinas en riesgo directamente a la lista de compras del taller.
-
-### 4. Ingesta Automática de Anycubic Slicer Next y OrcaSlicer
-- **Filosofía "Slicing ≠ Printing":** Laminar no es imprimir. Filoteca **nunca** descuenta filamento de manera silenciosa ni asume que un archivo laminado fue enviado o completado con éxito.
-- **Ingesta no invasiva:** Notificación silenciosa mediante una insignia reactiva en la barra de título (`Bandeja (N)`).
-- **Vigilante en tiempo real de temporales:** Escucha activa y recursiva de `%LOCALAPPDATA%\Temp\anycubicslicer_model\` detectando archivos ocultos con prefijo punto (`.*.gcode*` y `.*.gcode.metadata`). Escaneo automático de sesiones recientes al iniciar la aplicación.
-- **Parser tolerante de metadatos:**
-  - Extrae miniaturas PNG embebidas (260×260 px) y las almacena localmente en `%APPDATA%\Filoteca\thumbnails\`, sirviéndolas con el protocolo seguro `filoteca-media://`.
-  - Lee pesos reales por slot, tiempo estimado de impresión, capas, modelo de impresora (Kobra X / Anycubic Multi-Color) y metadatos de filamento.
-  - Fórmula de respaldo volumétrico si faltan los gramos explícitos ($m = \frac{\pi (d/2)^2 L \rho}{1000}$).
-- **Emparejamiento colorimétrico CIELAB (CIE76):**
-  - Transforma colores sRGB del slicer a espacio perceptual $L^*a^*b^*$.
-  - Calcula la distancia $\Delta E_{76} = \sqrt{(\Delta L^*)^2 + (\Delta a^*)^2 + (\Delta b^*)^2}$.
-  - Selecciona la mejor bobina del inventario priorizando: mapeos recordados de impresiones previas > concordancia de marca/material > acabado > menor $\Delta E$ > bobina en uso > stock suficiente.
-- **Bandeja de laminados dedicada:**
-  - Vista visual con miniaturas renderizadas, advertencias de discrepancia (material o color diferente al configurado en el laminador).
-  - Selector desplegable para asociar o cambiar la bobina de cada slot.
-  - Ajuste manual de gramos consumidos por slot.
-  - Acciones rápidas: *"Lo imprimí"* (descuenta y archiva), *"Impresión parcial / fallida"* (modal con deslizador de porcentaje impreso real) y *"No lo imprimí / Descartar"*.
-  - Agrupación por sesión (`sessionKey`) y barra de herramientas de selección múltiple por lotes.
-- **Modo Compañero (Companion Mode):**
-  - Monitorea el proceso de Windows `AnycubicSlicerNext.exe` de forma ligera (sondeo cada 2.5s con `tasklist`).
-  - Al detectar un nuevo laminado, abre o muestra Filoteca en segundo plano sin robar el foco (`win.showInactive()`).
-  - Al cerrarse el laminador, Filoteca emerge con el modal interactivo: *"¿Qué imprimiste en esta sesión?"* para confirmar o descartar en segundos.
-  - Detector de estado en vivo del proceso en la pantalla de Ajustes.
+1. **Visualizador 3D Paramétrico de Bobinas:** Celosía hexagonal (panal Bambu/MasterSpool) con renderizado bajo demanda optimizado a 30 FPS (0% de consumo de GPU en reposo). Conservación física de volumen del filamento restante, y materiales PBR realistas para cada acabado.
+2. **Companion de Laminador Anycubic:** Detección automática de `.gcode.metadata`, descarte de temporales `.3mf`, reconocimiento de placas y cálculo volumétrico de respaldo. Filosofía *"Slicing ≠ Printing"*, con ingesta no invasiva.
+3. **Lógica Inteligente de Stock (`hasBackupStock`):** Si una bobina está baja pero existe un rollo nuevo del mismo material y color, no lanza falsas alertas.
+4. **100% Offline y Privado:** Base de datos SQLite local en WebAssembly (`sql.js`), garantizando rendimiento y privacidad de tus datos sin depender de la nube.
+5. **Moneda Local:** Formateado nativo en Pesos Colombianos (COP), con cálculo inteligente de costo por gramo y soporte para diferentes tipos de entrada.
 
 ---
 
@@ -75,7 +35,18 @@ Filoteca no es un CRUD genérico: está diseñada con la estética y el ritmo de
 
 ---
 
-## 🚀 Requisitos e Instalación
+## 📥 Descarga e Instalación
+
+### Versión Portable y Ejecutable (¡Recomendado!)
+1. Ve a la pestaña **[Releases](https://github.com/Mate1592/filament/releases)** del repositorio en GitHub.
+2. Descarga el archivo `.exe` más reciente (por ejemplo, `Filoteca-Portable-1.0.0.exe`).
+3. ¡Listo! Puedes ejecutarlo directamente (100% independiente, no requiere privilegios de administrador ni instalación en el sistema) o utilizar el instalador NSIS si prefieres integrarlo en el menú de inicio.
+
+---
+
+## 🧑‍💻 Guía Rápida para Desarrolladores
+
+Si prefieres compilar la aplicación desde el código fuente o contribuir al proyecto:
 
 ### Requisitos previos:
 - Windows 10 u 11 (64-bit).
@@ -86,39 +57,11 @@ Filoteca no es un CRUD genérico: está diseñada con la estética y el ritmo de
 npm install
 ```
 
-### Modo de desarrollo:
-Para iniciar el servidor Vite con Hot Module Replacement (HMR) y la ventana de Electron simultáneamente:
-```powershell
-npm run dev
-```
-
----
-
-## 📦 Ejecutables Disponibles (.exe)
-
-Los binarios compilados y verificados se encuentran en la carpeta `release/`:
-
-1. **`release\Filoteca-Portable-1.0.0.exe`**:
-   - **Ejecutable portable 100% independiente (~105 MB).**
-   - No requiere privilegios de administrador ni instalación en el sistema.
-   - Ideal para llevar en una memoria USB o ejecutar directamente en la estación de trabajo junto a la impresora 3D.
-2. **`release\Filoteca Setup 1.0.0.exe`**:
-   - Instalador estándar NSIS para Windows con acceso directo en el escritorio y menú inicio.
-3. **`release\win-unpacked\Filoteca.exe`**:
-   - Carpeta desempaquetada lista para ejecución instantánea sin descompresión.
-
-### Compilación desde código fuente:
-Para volver a generar los binarios en cualquier momento:
-```powershell
-# Compilar versión portable:
-npm run dist:portable
-
-# Compilar instalador completo NSIS:
-npm run dist
-
-# O utilizando el script de compilación en un paso:
-.\build-windows.ps1
-```
+### Comandos Clave:
+- **`npm run dev`**: Inicia el servidor de Vite con HMR y la ventana de Electron en modo de desarrollo.
+- **`npm run build`**: Compila todo el frontend (Vite) y el proceso principal (TypeScript de Electron).
+- **`npm run test:gcode`**: Ejecuta la suite de pruebas unitarias del parser de metadatos de G-code y colorimetría.
+- **`npm run typecheck`**: Verifica los tipos en todo el proyecto TypeScript.
 
 ---
 
