@@ -1,113 +1,116 @@
-# Filoteca
+# Filoteca 🧵
 
-> Sistema de gestión e inventario de filamento para talleres de impresión 3D. Aplicación de escritorio 100% offline para Windows con modelos 3D paramétricos, integración con Anycubic Slicer Next y OrcaSlicer, soporte multi-idioma (Español, English, Português) y cálculo de costes en tiempo real.
+[🇪🇸 Leer en Español](README.es.md) | [🇺🇸 English]
 
-[![Plataforma](https://img.shields.io/badge/Plataforma-Windows%2010%20%2F%2011%20(64--bit)-blue.svg)](#descarga-e-instalación-rápida)
-[![Licencia](https://img.shields.io/badge/Licencia-MIT-green.svg)](LICENSE)
-[![Privacidad](https://img.shields.io/badge/Privacidad-100%25%20Offline-success.svg)](#arquitectura-técnica)
-[![Versión](https://img.shields.io/badge/Versión-v1.0.0-orange.svg)](https://github.com/Mate1592/FILOTEK_ANYCUBIC/releases)
+![Windows 10/11 x64](https://img.shields.io/badge/Windows-10%2F11%20x64-0078D6?style=flat-square&logo=windows)
+![MIT License](https://img.shields.io/badge/License-MIT-green?style=flat-square)
+![100% Offline](https://img.shields.io/badge/100%25-Offline-4CAF50?style=flat-square)
+![Version](https://img.shields.io/badge/Version-v1.0.0-blue?style=flat-square)
 
----
+> **3D Printing Filament Inventory** — A modern, smooth, and 100% offline desktop application for Windows. Features procedural 3D rendering, smart restocking forecasts, multi-language support (English, Spanish, Portuguese), and automatic data ingestion for Anycubic Slicer Next 2.0+ (Kobra X) and OrcaSlicer.
 
-## Capturas de Pantalla
-
-### Estantería Principal con Bobinas 3D
-![Estantería de filamentos con modelos 3D paramétricos](docs/screenshots/01-shelf-3d.png)
-
-### Inspección Táctil 360° y Detalle de Bobina
-![Visor interactivo 3D con inercia y control de peso](docs/screenshots/02-modal-3d.png)
-
-### Companion Automático de Laminador (Anycubic / Orca)
-![Bandeja de laminados con detección de ranuras y colores](docs/screenshots/03-companion.png)
-
-### Planificación y Previsión de Reabastecimiento
-![Gráficos de previsión y ritmo de consumo](docs/screenshots/04-replenishment.png)
+Filoteca is designed for professional makers and 3D printing workshops. Going beyond generic tables or CRUD spreadsheets, each spool is visually represented as a parametric 3D model in three-quarters view that reflects actual color, material finishes (matte, glossy, silk, translucent, glitter), and remaining filament volume based on physical winding geometry.
 
 ---
 
-## Características Principales
+## 📸 Screenshots
 
-### 1. Modelado 3D Paramétrico con Renderizado Eficiente
-- **Física real de devanado:** El radio del filamento responde al volumen auténtico:
-  $$R = \sqrt{r_{\text{núcleo}}^2 + f \cdot (R_{\text{lleno}}^2 - r_{\text{núcleo}}^2)}$$
-  donde $f = \frac{\text{peso restante}}{\text{peso inicial}}$. Un carrete con 300g refleja físicamente un tercio del devanado, mostrando el cilindro de cartón kraft interior a través de la celosía hexagonal.
-- **Materiales PBR realistas:** Configuraciones calibradas para acabados mate, brillante, seda (sheen nacarado), translúcido y glitter.
-- **Rendimiento optimizado a 30 FPS:** Arquitectura de canvas WebGL compartido con renderizado bajo demanda (*scissor testing*). En reposo el consumo de GPU cae al **0%**, eliminando sobrecargas térmicas en monitores de alta frecuencia (120Hz, 144Hz o 240Hz).
+### Main 3D Spool Shelf
+![Main 3D Spool Shelf](docs/screenshots/01-shelf-3d.png)
 
-### 2. Companion de Laminador (Anycubic Slicer Next y OrcaSlicer)
-- **Filosofía "Laminar no es imprimir":** Filoteca no descuenta filamento a espaldas del usuario. Detecta de forma pasiva los archivos generados y presenta una bandeja interactiva para confirmar únicamente lo que se imprimió.
-- **Detección en segundo plano:** Vigilante de archivos temporales (`%LOCALAPPDATA%\Temp\anycubicslicer_model\`) que extrae miniaturas PNG embebidas, ranuras de material, tiempos y pesos estimados.
-- **Algoritmo colorimétrico CIELAB (CIE76):** Transforma los colores sRGB del laminador al espacio perceptual $L^*a^*b^*$ y empareja automáticamente las ranuras con la bobina más cercana de tu inventario.
+### 360° Tactile Inspection & Spool Details
+![Spool Modal View](docs/screenshots/02-modal-3d.png)
 
-### 3. Lógica Inteligente de Stock de Respaldo (`hasBackupStock`)
-- Si una bobina está por debajo del umbral de reserva (ej. 40g), pero en el taller existe otro rollo sellado del mismo material y color, la aplicación muestra una insignia de tranquilidad (*"4% · Respaldado"*), evitando falsas alarmas en la estantería y en la lista de compras.
+### Automatic Slicer Companion (Anycubic / Orca)
+![Slicer Companion Tray](docs/screenshots/03-companion.png)
 
-### 4. Soporte Multi-idioma y Tour de Bienvenida
-- Soporte nativo para **Español**, **English** y **Português**.
-- Tour interactivo de configuración inicial para seleccionar idioma, moneda del taller (COP, USD, EUR, BRL) y tema visual (oscuro o claro).
-
-### 5. 100% Offline y Privado
-- Motor de base de datos SQLite embebido en WebAssembly (`sql.js`). Todos tus datos, precios, historial de consumo y notas residen exclusivamente en tu disco local. No requiere cuentas ni conexión a internet.
+### Replenishment Planning & Consumption Forecasting
+![Replenishment Forecast](docs/screenshots/04-replenishment.png)
 
 ---
 
-## Descarga e Instalación Rápida
+## ✨ Main Features
 
-No es necesario compilar código ni instalar herramientas de desarrollo:
+### 1. Parametric 3D Spools with On-Demand Rendering
+- **True Winding Physics:** The radius of the remaining filament responds directly to volumetric physics:
+  $$R = \sqrt{r_{\text{core}}^2 + f \cdot (R_{\text{full}}^2 - r_{\text{core}}^2)}$$
+  where $f = \frac{\text{remaining weight}}{\text{initial weight}}$. A spool at 33% physically represents an authentic volumetric third, showing the interior kraft cardboard cylinder through the hexagonal lattice.
+- **Realistic PBR Materials:** Calibrated presets for matte, glossy, silk (pearly sheen), translucent (optical depth transmission), and glitter (procedural metallic scintillation).
+- **Resource-Efficient 30 FPS Engine:** Shared WebGL canvas architecture with on-demand rendering (*scissor testing*). At idle, GPU usage drops to **0%**, preventing thermal load and battery drain on high-refresh-rate monitors (120Hz, 144Hz, 240Hz).
 
-1. Ve a la pestaña de **[Releases](https://github.com/Mate1592/FILOTEK_ANYCUBIC/releases)** en este repositorio.
-2. Descarga el archivo **`Filoteca-Portable-1.0.0.exe`**.
-3. Haz doble clic sobre el archivo ejecutable para iniciar Filoteca de inmediato. Puedes llevarlo en una memoria USB o dejarlo en tu carpeta de herramientas.
+### 2. Automatic Slicer Companion (Anycubic Slicer Next & OrcaSlicer)
+- **"Slicing ≠ Printing" Philosophy:** Filoteca never silently deducts filament. It passively monitors generated files and displays an interactive tray for you to confirm only what was actually printed.
+- **Background Temporal Watcher:** Watches `%LOCALAPPDATA%\Temp\anycubicslicer_model\` to extract embedded 260px PNG thumbnails, material slots, estimated print times, and weights.
+- **Perceptual CIELAB (CIE76) Color Matching:** Converts sRGB colors from the slicer to the perceptual $L^*a^*b^*$ color space and automatically pairs each slot with the closest spool in your inventory ($\Delta E_{76}$).
 
----
+### 3. Smart Backup Stock Logic (`hasBackupStock`)
+- If a spool drops below the low-stock safety threshold (e.g. 40g), but your workshop has another sealed spool of the exact same brand, material, and color, Filoteca displays a reassuring badge (*"4% · Backed up"*), avoiding unnecessary panic on your shelf and shopping lists.
 
-## Comunidad y Participación
+### 4. Multi-Language Support & Onboarding Tour
+- Native support for **English**, **Español**, and **Português**.
+- Interactive first-run onboarding tour to choose your language, workshop currency (COP, USD, EUR, BRL), and visual theme (dark or light). Re-run the tour anytime from Settings.
 
-- **Dudas, ideas y fotos de talleres:** Participa en [GitHub Discussions](https://github.com/Mate1592/FILOTEK_ANYCUBIC/discussions) para compartir mejoras y configuraciones de impresión.
-- **Reporte de errores:** Abre un [GitHub Issue](https://github.com/Mate1592/FILOTEK_ANYCUBIC/issues) detallando el problema o sugiriendo nuevas marcas de filamentos.
-
----
-
-## Apoyo y Donaciones
-
-Filoteca es un proyecto de código abierto desarrollado para la comunidad de impresión 3D y makers de todo el mundo. Si esta herramienta te ahorra tiempo y material en tu taller, puedes apoyar su mantenimiento y evolución continua:
-
-### Donaciones Nacionales (Colombia 🇨🇴)
-- **Link de Pago (Bold / Wompi / PSE / Nequi / Tarjetas):**
-  Puedes realizar tu aporte directamente a través de pasarela segura colombiana:
-  [Enlace de Aporte al Proyecto](https://checkout.wompi.co/l/filoteca-apoyo) *(o vía Nequi/Daviplata solicitando enlace directo)*.
-
-### Donaciones Internacionales (Global 🌎)
-- **Ko-fi:** [ko-fi.com/mate1592](https://ko-fi.com)
-- **PayPal:** [paypal.me/mate1592](https://paypal.me)
+### 5. 100% Offline & Private
+- WebAssembly SQLite database engine (`sql.js`). All your data, prices, consumption logs, and workshop notes stay strictly on your local disk. No mandatory accounts, telemetry, or internet access required.
 
 ---
 
-## Desarrollo y Compilación Local
+## 🚀 Quick Start (No Installation Required)
 
-Si deseas contribuir o compilar el proyecto desde el código fuente:
+1. Head over to the **[Releases](https://github.com/Mate1592/FILOTEK_ANYCUBIC/releases)** page of this repository.
+2. Download the standalone executable: **`Filoteca-Portable-1.0.0.exe`**.
+3. Double-click the file to launch Filoteca immediately. You can run it from a USB drive or store it in your portable tools folder.
 
-### Requisitos
-- Windows 10 u 11 (64-bit).
-- Node.js LTS (v20 o superior).
+*(An optional NSIS installer `Filoteca Setup 1.0.0.exe` is also provided if you prefer Start Menu shortcuts and uninstaller registration).*
 
-### Instrucciones
+---
+
+## 👥 Community & Getting Involved
+
+- **Discussions, Ideas & Workshop Setups:** Join [GitHub Discussions](https://github.com/Mate1592/FILOTEK_ANYCUBIC/discussions) to share prints and feature suggestions.
+- **Bug Reports & Filament Requests:** Open a [GitHub Issue](https://github.com/Mate1592/FILOTEK_ANYCUBIC/issues) to report bugs or request new filament brand presets.
+
+---
+
+## ☕ Support & Donations
+
+Filoteca is an open-source project created for the global 3D printing maker community. If this software saves you time, prevents print failures, and organizes your workshop, consider supporting its active development:
+
+### Colombia 🇨🇴 (Local Payments)
+- **Wompi / PSE / Nequi / Bancolombia / Cards:**
+  [checkout.wompi.co/l/miKi8F](https://checkout.wompi.co/l/miKi8F)
+
+### Global 🌎 (International Payments)
+- **PayPal:** [paypal.me/matec15](https://paypal.me/matec15)
+- **Ko-fi:** [ko-fi.com/mate1592](https://ko-fi.com/mate1592)
+
+---
+
+## 🛠️ Local Development & Build
+
+If you wish to contribute or build Filoteca from source:
+
+### Prerequisites
+- Windows 10 or 11 (64-bit).
+- Node.js LTS (v20+ recommended).
+
+### Commands
 ```powershell
-# 1. Instalar dependencias
+# 1. Install dependencies
 npm install
 
-# 2. Iniciar en modo desarrollo con HMR
+# 2. Run in development mode with HMR
 npm run dev
 
-# 3. Ejecutar pruebas unitarias de metadatos G-code
+# 3. Execute G-code metadata & colorimetric unit tests
 npm run test:gcode
 
-# 4. Compilar versión portable de Windows (.exe)
+# 4. Build Windows portable standalone binary (.exe)
 npm run dist:portable
 ```
 
 ---
 
-## Licencia
+## 📄 License
 
-Distribuido bajo la Licencia MIT. Consulta el archivo `LICENSE` para más detalles.
+Distributed under the MIT License. See [`LICENSE`](LICENSE) for details.
