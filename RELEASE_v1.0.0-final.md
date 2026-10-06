@@ -1,4 +1,4 @@
-# Filoteca v1.0.0 — 3D Workshop & Filament Management (Initial Release)
+# Filoteca v1.0.0-final — 3D Workshop & Filament Management (Initial Release)
 
 Welcome to the official global release of Filoteca v1.0.0!
 
