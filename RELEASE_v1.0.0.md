@@ -14,5 +14,5 @@ Filoteca is a modern, smooth, and 100% offline desktop application for Windows. 
 ## 📥 Downloads
 You can download the official verified binaries below:
 
-- **[Filoteca-Portable-1.0.0.exe](https://github.com/Mate1592/filament/releases/download/v1.0.0/Filoteca-Portable-1.0.0.exe)**: Standalone portable executable (Recommended! ~105 MB. No install needed).
-- **[Filoteca Setup 1.0.0.exe](https://github.com/Mate1592/filament/releases/download/v1.0.0/Filoteca%20Setup%201.0.0.exe)**: Standard NSIS installer for Windows.
+- **[Filoteca-Portable-1.0.0.exe](https://github.com/Mate1592/FILOTEK_ANYCUBIC/releases/download/v1.0.0/Filoteca-Portable-1.0.0.exe)**: Standalone portable executable (Recommended! ~105 MB. No install needed).
+- **[Filoteca Setup 1.0.0.exe](https://github.com/Mate1592/FILOTEK_ANYCUBIC/releases/download/v1.0.0/Filoteca%20Setup%201.0.0.exe)**: Standard NSIS installer for Windows.

@@ -26,7 +26,7 @@ Filoteca is designed for professional makers and 3D printing workshops. It goes 
 ## 📥 Download and Installation
 
 ### Portable Version (Recommended!)
-1. Go to the **[Releases](https://github.com/Mate1592/filament/releases)** tab of this repository.
+1. Go to the **[Releases](https://github.com/Mate1592/FILOTEK_ANYCUBIC/releases)** tab of this repository.
 2. Download the latest `.exe` file (e.g., `Filoteca-Portable-1.0.0.exe`).
 3. That's it! You can run it directly (100% standalone, no admin rights or installation required) or use the NSIS installer if you want start menu shortcuts.
 
