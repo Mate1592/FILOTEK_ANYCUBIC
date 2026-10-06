@@ -54,6 +54,15 @@ export const TRANSLATIONS = {
     tourStep4Desc1: 'Filoteca nunca descuenta filamento a espaldas tuyas. Detecta tus impresiones y te consulta al cerrar el laminador.',
     tourStep4Desc2: 'Algoritmo colorimétrico CIELAB para emparejar automáticamente cada ranura con tu stock real.',
 
+    tourStep5Title: 'Apoyar el Proyecto',
+    tourStep5Subtitle: 'Filoteca es 100% gratuita, sin publicidad y de código abierto.',
+    tourStep5Desc: 'Si esta herramienta te ayuda a optimizar tu taller 3D y ahorrar filamento, considera hacer un aporte voluntario para apoyar el desarrollo continuo.',
+    donateWompi: 'Colombia (Wompi / PSE / Nequi / Bancolombia)',
+    donatePayPal: 'Internacional (PayPal)',
+    developedBy: 'Desarrollado por TermuxX solutions',
+    settingsSupportTitle: 'Apoyar a Filoteca',
+    settingsSupportDesc: 'Filoteca es mantenida de forma independiente para la comunidad maker. Tu aporte voluntario nos ayuda a mantenerla actualizada y libre de publicidad.',
+
     tourBtnNext: 'Siguiente',
     tourBtnBack: 'Atrás',
     tourBtnSkip: 'Omitir',
@@ -111,6 +120,15 @@ export const TRANSLATIONS = {
     tourStep4Desc1: 'Filoteca never deducts filament without confirmation. It monitors your slicer and prompts you when ready.',
     tourStep4Desc2: 'CIELAB colorimetric math to automatically match slicer slots to your actual inventory.',
 
+    tourStep5Title: 'Support the Project',
+    tourStep5Subtitle: 'Filoteca is 100% free, ad-free, and open source.',
+    tourStep5Desc: 'If this tool helps your 3D printing workshop save time and filament, consider making a voluntary contribution to support continuous development.',
+    donateWompi: 'Colombia (Wompi / PSE / Nequi / Cards)',
+    donatePayPal: 'International (PayPal)',
+    developedBy: 'Developed by TermuxX solutions',
+    settingsSupportTitle: 'Support Filoteca',
+    settingsSupportDesc: 'Filoteca is independently maintained for the maker community. Your voluntary support helps keep it up to date and ad-free.',
+
     tourBtnNext: 'Next',
     tourBtnBack: 'Back',
     tourBtnSkip: 'Skip',
@@ -167,6 +185,15 @@ export const TRANSLATIONS = {
     tourStep4Subtitle: 'Captura silenciosa para Anycubic Slicer e OrcaSlicer.',
     tourStep4Desc1: 'O Filoteca nunca desconta filamento sem confirmação. Ele detecta suas impressões e pergunta ao fechar o fatiador.',
     tourStep4Desc2: 'Algoritmo colorimétrico CIELAB para emparelhar automaticamente cada slot com seu estoque real.',
+
+    tourStep5Title: 'Apoiar o Projeto',
+    tourStep5Subtitle: 'O Filoteca é 100% gratuito, sem anúncios e de código aberto.',
+    tourStep5Desc: 'Se esta ferramenta ajuda sua oficina 3D a economizar tempo e filamento, considere fazer uma contribuição voluntária para apoiar o desenvolvimento contínuo.',
+    donateWompi: 'Colômbia (Wompi / PSE / Nequi / Cartões)',
+    donatePayPal: 'Internacional (PayPal)',
+    developedBy: 'Desenvolvido por TermuxX solutions',
+    settingsSupportTitle: 'Apoiar o Filoteca',
+    settingsSupportDesc: 'O Filoteca é mantido de forma independente para a comunidade maker. Seu apoio voluntário ajuda a mantê-lo atualizado e livre de anúncios.',
 
     tourBtnNext: 'Avançar',
     tourBtnBack: 'Voltar',

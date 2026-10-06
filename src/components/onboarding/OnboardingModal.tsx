@@ -15,13 +15,17 @@ import {
   Sun,
   Laptop,
   Sparkles,
+  Heart,
+  CreditCard,
+  ExternalLink,
 } from 'lucide-react';
+import { api } from '../../lib/api';
 
 interface OnboardingModalProps {
   onClose?: () => void;
 }
 
-const TOTAL_STEPS = 4;
+const TOTAL_STEPS = 5;
 
 export function OnboardingModal({ onClose }: OnboardingModalProps) {
   const settings = useStore((s) => s.settings);
@@ -324,13 +328,88 @@ export function OnboardingModal({ onClose }: OnboardingModalProps) {
                 </div>
               </motion.div>
             )}
+
+            {step === 5 && (
+              <motion.div
+                key="step-5"
+                initial={{ opacity: 0, x: 24 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -24 }}
+                transition={{ duration: 0.2 }}
+                className="space-y-4"
+              >
+                <div>
+                  <div className="w-12 h-12 rounded-2xl bg-crit/15 text-crit-text flex items-center justify-center mb-3">
+                    <Heart size={24} className="fill-crit/20 text-crit" />
+                  </div>
+                  <h2 className="text-2xl font-display font-bold text-text">
+                    {t('tourStep5Title')}
+                  </h2>
+                  <p className="text-sm text-muted mt-0.5">
+                    {t('tourStep5Subtitle')}
+                  </p>
+                </div>
+
+                <p className="text-xs text-muted leading-relaxed">
+                  {t('tourStep5Desc')}
+                </p>
+
+                <div className="grid grid-cols-1 gap-2.5 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => api.win.openExternal('https://checkout.wompi.co/l/miKi8F')}
+                    className="w-full p-3 rounded-2xl bg-surface-2 hover:bg-surface-3 border border-line hover:border-line-strong transition-all flex items-center justify-between text-left group cursor-pointer shadow-xs"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-xl bg-accent/15 text-accent-text flex items-center justify-center shrink-0">
+                        <CreditCard size={18} />
+                      </div>
+                      <div>
+                        <div className="text-xs font-semibold text-text group-hover:text-accent-text transition-colors">
+                          {t('donateWompi')}
+                        </div>
+                        <div className="text-[11px] text-faint">
+                          Wompi · PSE · Nequi · Bancolombia · Tarjetas
+                        </div>
+                      </div>
+                    </div>
+                    <ExternalLink size={15} className="text-muted group-hover:text-text transition-colors mr-1" />
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => api.win.openExternal('https://paypal.me/matec15')}
+                    className="w-full p-3 rounded-2xl bg-surface-2 hover:bg-surface-3 border border-line hover:border-line-strong transition-all flex items-center justify-between text-left group cursor-pointer shadow-xs"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-xl bg-blue-500/15 text-blue-400 flex items-center justify-center shrink-0">
+                        <Globe size={18} />
+                      </div>
+                      <div>
+                        <div className="text-xs font-semibold text-text group-hover:text-accent-text transition-colors">
+                          {t('donatePayPal')}
+                        </div>
+                        <div className="text-[11px] text-faint">
+                          PayPal · USD / EUR / Global
+                        </div>
+                      </div>
+                    </div>
+                    <ExternalLink size={15} className="text-muted group-hover:text-text transition-colors mr-1" />
+                  </button>
+                </div>
+
+                <div className="pt-1 text-center text-[11px] text-faint font-mono">
+                  {t('developedBy')}
+                </div>
+              </motion.div>
+            )}
           </AnimatePresence>
 
           {/* Barra inferior de navegación de pasos */}
           <div className="flex items-center justify-between pt-6 border-t border-line/40 mt-4">
             {/* Puntos de progreso */}
             <div className="flex items-center gap-1.5">
-              {[1, 2, 3, 4].map((i) => (
+              {[1, 2, 3, 4, 5].map((i) => (
                 <div
                   key={i}
                   className={`h-1.5 rounded-full transition-all duration-300 ${

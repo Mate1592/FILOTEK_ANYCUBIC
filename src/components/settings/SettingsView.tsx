@@ -22,14 +22,19 @@ import {
   Copy,
   Globe,
   Sparkles,
+  Heart,
+  CreditCard,
+  ExternalLink,
 } from 'lucide-react';
 import type { ExportBundle, ThemePref } from '../../shared/types';
 import { useStore } from '../../store/useStore';
+import { useI18n } from '../../lib/i18n';
 import { api, isDesktop } from '../../lib/api';
 import { rollsToCsv, parseRollsCsv } from '../../lib/export';
 import { sanitizeRoll, todayIso } from '../../lib/roll';
 
 export function SettingsView() {
+  const { t } = useI18n();
   const settings = useStore((s) => s.settings);
   const setSetting = useStore((s) => s.setSetting);
   const rolls = useStore((s) => s.rolls);
@@ -799,9 +804,70 @@ export function SettingsView() {
         </div>
       </div>
 
+      {/* Support / Donations Section */}
+      <div className="p-5 rounded-2xl bg-surface-1 border border-line shadow-xs space-y-4">
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-xl bg-crit/15 text-crit-text flex items-center justify-center shrink-0">
+            <Heart size={16} className="fill-crit/20 text-crit" />
+          </div>
+          <div>
+            <span className="text-sm font-bold text-text block">
+              {t('settingsSupportTitle')}
+            </span>
+            <span className="text-xs text-muted">
+              {t('settingsSupportDesc')}
+            </span>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+          <button
+            type="button"
+            onClick={() => api.win.openExternal('https://checkout.wompi.co/l/miKi8F')}
+            className="p-3.5 rounded-xl bg-surface-2 hover:bg-surface-3 border border-line hover:border-line-strong transition-all flex items-center justify-between text-left group cursor-pointer shadow-xs"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-accent/15 text-accent-text flex items-center justify-center shrink-0">
+                <CreditCard size={16} />
+              </div>
+              <div>
+                <div className="text-xs font-semibold text-text group-hover:text-accent-text transition-colors">
+                  {t('donateWompi')}
+                </div>
+                <div className="text-[11px] text-faint">
+                  Wompi · PSE · Nequi · Bancolombia
+                </div>
+              </div>
+            </div>
+            <ExternalLink size={14} className="text-muted group-hover:text-text transition-colors shrink-0" />
+          </button>
+
+          <button
+            type="button"
+            onClick={() => api.win.openExternal('https://paypal.me/matec15')}
+            className="p-3.5 rounded-xl bg-surface-2 hover:bg-surface-3 border border-line hover:border-line-strong transition-all flex items-center justify-between text-left group cursor-pointer shadow-xs"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-blue-500/15 text-blue-400 flex items-center justify-center shrink-0">
+                <Globe size={16} />
+              </div>
+              <div>
+                <div className="text-xs font-semibold text-text group-hover:text-accent-text transition-colors">
+                  {t('donatePayPal')}
+                </div>
+                <div className="text-[11px] text-faint">
+                  PayPal · USD / EUR / Global
+                </div>
+              </div>
+            </div>
+            <ExternalLink size={14} className="text-muted group-hover:text-text transition-colors shrink-0" />
+          </button>
+        </div>
+      </div>
+
       {/* Footer Info */}
       <div className="pt-2 text-center text-xs text-faint font-mono">
-        Filoteca v1.0.0 · Software de taller para impresión 3D · 100% Offline
+        Filoteca v1.0.1 · {t('developedBy')} · 100% Offline
       </div>
     </div>
   );

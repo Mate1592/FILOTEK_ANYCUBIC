@@ -1,9 +1,9 @@
 {
   "name": "filoteca",
   "productName": "Filoteca",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Inventario de filamento para impresión 3D",
-  "author": "Filoteca",
+  "author": "TermuxX solutions",
   "private": true,
   "main": "dist-electron/electron/main.js",
   "scripts": {

@@ -5,9 +5,9 @@
 ![Windows 10/11 x64](https://img.shields.io/badge/Windows-10%2F11%20x64-0078D6?style=flat-square&logo=windows)
 ![MIT License](https://img.shields.io/badge/License-MIT-green?style=flat-square)
 ![100% Offline](https://img.shields.io/badge/100%25-Offline-4CAF50?style=flat-square)
-![Version](https://img.shields.io/badge/Version-v1.0.0-blue?style=flat-square)
+![Version](https://img.shields.io/badge/Version-v1.0.1-blue?style=flat-square)
 
-> **3D Printing Filament Inventory** — A modern, smooth, and 100% offline desktop application for Windows. Features procedural 3D rendering, smart restocking forecasts, multi-language support (English, Spanish, Portuguese), and automatic data ingestion for Anycubic Slicer Next 2.0+ (Kobra X) and OrcaSlicer.
+> **3D Printing Filament Inventory** — Developed by **TermuxX solutions**. A modern, smooth, and 100% offline desktop application for Windows. Features procedural 3D rendering, smart restocking forecasts, multi-language support (English, Spanish, Portuguese), and automatic data ingestion for Anycubic Slicer Next 2.0+ (Kobra X) and OrcaSlicer.
 
 Filoteca is designed for professional makers and 3D printing workshops. Going beyond generic tables or CRUD spreadsheets, each spool is visually represented as a parametric 3D model in three-quarters view that reflects actual color, material finishes (matte, glossy, silk, translucent, glitter), and remaining filament volume based on physical winding geometry.
 
@@ -58,10 +58,10 @@ Filoteca is designed for professional makers and 3D printing workshops. Going be
 ## 🚀 Quick Start (No Installation Required)
 
 1. Head over to the **[Releases](https://github.com/Mate1592/FILOTEK_ANYCUBIC/releases)** page of this repository.
-2. Download the standalone executable: **`Filoteca-Portable-1.0.0.exe`**.
+2. Download the standalone executable: **`Filoteca-Portable-1.0.1.exe`**.
 3. Double-click the file to launch Filoteca immediately. You can run it from a USB drive or store it in your portable tools folder.
 
-*(An optional NSIS installer `Filoteca Setup 1.0.0.exe` is also provided if you prefer Start Menu shortcuts and uninstaller registration).*
+*(An optional NSIS installer `Filoteca Setup 1.0.1.exe` is also provided if you prefer Start Menu shortcuts and uninstaller registration).*
 
 ---
 
@@ -74,7 +74,7 @@ Filoteca is designed for professional makers and 3D printing workshops. Going be
 
 ## ☕ Support & Donations
 
-Filoteca is an open-source project created for the global 3D printing maker community. If this software saves you time, prevents print failures, and organizes your workshop, consider supporting its active development:
+Filoteca is an open-source project created by **TermuxX solutions** for the global 3D printing maker community. If this software saves you time, prevents print failures, and organizes your workshop, consider supporting its active development:
 
 ### Colombia 🇨🇴 (Local Payments)
 - **Wompi / PSE / Nequi / Bancolombia / Cards:**
@@ -82,7 +82,6 @@ Filoteca is an open-source project created for the global 3D printing maker comm
 
 ### Global 🌎 (International Payments)
 - **PayPal:** [paypal.me/matec15](https://paypal.me/matec15)
-- **Ko-fi:** [ko-fi.com/mate1592](https://ko-fi.com/mate1592)
 
 ---
 
@@ -114,3 +113,7 @@ npm run dist:portable
 ## 📄 License
 
 Distributed under the MIT License. See [`LICENSE`](LICENSE) for details.
+
+---
+
+<p align="center">Developed by <b>TermuxX solutions</b> for the global maker community.</p>

@@ -2,12 +2,12 @@
 
 [🇺🇸 Read in English](README.md) | [🇨🇴 Leer en Español]
 
-> Sistema de gestión e inventario de filamento para talleres de impresión 3D. Aplicación de escritorio 100% offline para Windows con modelos 3D paramétricos, integración con Anycubic Slicer Next y OrcaSlicer, soporte multi-idioma (Español, English, Português) y cálculo de costes en tiempo real.
+> Sistema de gestión e inventario de filamento para talleres de impresión 3D — Desarrollado por **TermuxX solutions**. Aplicación de escritorio 100% offline para Windows con modelos 3D paramétricos, integración con Anycubic Slicer Next y OrcaSlicer, soporte multi-idioma (Español, English, Português) y cálculo de costes en tiempo real.
 
 [![Plataforma](https://img.shields.io/badge/Plataforma-Windows%2010%20%2F%2011%20(64--bit)-blue.svg)](#descarga-e-instalación-rápida)
 [![Licencia](https://img.shields.io/badge/Licencia-MIT-green.svg)](LICENSE)
 [![Privacidad](https://img.shields.io/badge/Privacidad-100%25%20Offline-success.svg)](#arquitectura-técnica)
-[![Versión](https://img.shields.io/badge/Versión-v1.0.0-orange.svg)](https://github.com/Mate1592/FILOTEK_ANYCUBIC/releases)
+[![Versión](https://img.shields.io/badge/Versión-v1.0.1-orange.svg)](https://github.com/Mate1592/FILOTEK_ANYCUBIC/releases)
 
 ---
 
@@ -58,7 +58,7 @@
 No es necesario compilar código ni instalar herramientas de desarrollo:
 
 1. Ve a la pestaña de **[Releases](https://github.com/Mate1592/FILOTEK_ANYCUBIC/releases)** en este repositorio.
-2. Descarga el archivo **`Filoteca-Portable-1.0.0.exe`**.
+2. Descarga el archivo **`Filoteca-Portable-1.0.1.exe`** (o el instalador `Filoteca Setup 1.0.1.exe`).
 3. Haz doble clic sobre el archivo ejecutable para iniciar Filoteca de inmediato. Puedes llevarlo en una memoria USB o dejarlo en tu carpeta de herramientas.
 
 ---
@@ -72,14 +72,15 @@ No es necesario compilar código ni instalar herramientas de desarrollo:
 
 ## Apoyo y Donaciones
 
-Filoteca es un proyecto de código abierto desarrollado para la comunidad de impresión 3D y makers de todo el mundo. Si esta herramienta te ahorra tiempo y material en tu taller, puedes apoyar su mantenimiento y evolución continua:
+Filoteca es un proyecto de código abierto desarrollado por **TermuxX solutions** para la comunidad de impresión 3D y makers de todo el mundo. Si esta herramienta te ahorra tiempo y material en tu taller, puedes apoyar su mantenimiento y evolución continua:
 
 ### Donaciones Nacionales (Colombia 🇨🇴)
-- **Link de Pago (Bold / Wompi / PSE / Nequi / Tarjetas):**
+- **Link de Pago (Bold / Wompi / PSE / Nequi / Bancolombia / Tarjetas):**
   Puedes realizar tu aporte directamente a través de pasarela segura colombiana:
   [checkout.wompi.co/l/miKi8F](https://checkout.wompi.co/l/miKi8F)
+
+### Donaciones Internacionales (Global 🌎)
 - **PayPal:** [paypal.me/matec15](https://paypal.me/matec15)
-- **Ko-fi:** [ko-fi.com/mate1592](https://ko-fi.com/mate1592)
 
 ---
 
@@ -111,3 +112,7 @@ npm run dist:portable
 ## Licencia
 
 Distribuido bajo la Licencia MIT. Consulta el archivo `LICENSE` para más detalles.
+
+---
+
+<p align="center">Desarrollado por <b>TermuxX solutions</b> para la comunidad maker global.</p>
