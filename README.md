@@ -16,6 +16,26 @@ Filoteca is designed for professional makers and 3D printing workshops. It goes 
 
 ---
 
+## Quick Start (No installation required)
+
+1. Go to the **[Releases](https://github.com/Mate1592/FILOTEK_ANYCUBIC/releases)** tab of this repository.
+2. Download the latest `.exe` portable file: `Filoteca-Portable-1.0.0.exe`.
+3. Run the executable directly. It is 100% standalone and requires no administrator privileges or system installation.
+
+*(An NSIS installer `Filoteca Setup 1.0.0.exe` is also available if you prefer Start Menu shortcuts).*
+
+---
+
+## Community & Support / Donations
+
+If Filoteca helps you organize your 3D printing workshop, consider supporting its continuous development!
+
+- **Global (PayPal):** [paypal.me/matec15](https://paypal.me/matec15)
+- **Colombia (Wompi / PSE / Nequi):** [checkout.wompi.co/l/miKi8F](https://checkout.wompi.co/l/miKi8F)
+- **Ko-fi:** [ko-fi.com/mate1592](https://ko-fi.com/mate1592)
+
+---
+
 ## Main Features
 
 ### 1. Parametric 3D Spools
@@ -41,26 +61,3 @@ Filoteca is designed for professional makers and 3D printing workshops. It goes 
 
 ### 5. 100% Offline & Private
 - **Zero Cloud Dependency:** All data is securely stored on your local machine using a WebAssembly SQLite database (`sql.js`). No mandatory accounts, no subscriptions, and absolute privacy for your workshop data.
-
----
-
-## Quick Start (No installation required)
-
-1. Go to the **[Releases](https://github.com/Mate1592/FILOTEK_ANYCUBIC/releases)** tab of this repository.
-2. Download the latest `.exe` portable file: `Filoteca-Portable-1.0.0.exe`.
-3. Run the executable directly. It is 100% standalone and requires no administrator privileges or system installation.
-
-*(An NSIS installer `Filoteca Setup 1.0.0.exe` is also available if you prefer Start Menu shortcuts).*
-
----
-
-## Community & Support / Donations
-
-If Filoteca helps you organize your 3D printing workshop, consider supporting its continuous development!
-
-**Global:**
-- **Ko-fi:** [ko-fi.com/mate1592](https://ko-fi.com/mate1592)
-- **PayPal:** [paypal.me/mate1592](https://paypal.me/mate1592)
-
-**Colombia:**
-- **Bold / Wompi / PSE / Nequi:** *(Please contact directly or check in-app links for local QR codes and links)*.
