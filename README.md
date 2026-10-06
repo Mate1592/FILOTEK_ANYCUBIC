@@ -5,7 +5,7 @@
 [![Plataforma](https://img.shields.io/badge/Plataforma-Windows%2010%20%2F%2011%20(64--bit)-blue.svg)](#descarga-e-instalación-rápida)
 [![Licencia](https://img.shields.io/badge/Licencia-MIT-green.svg)](LICENSE)
 [![Privacidad](https://img.shields.io/badge/Privacidad-100%25%20Offline-success.svg)](#arquitectura-técnica)
-[![Versión](https://img.shields.io/badge/Versión-v1.0.0-orange.svg)](https://github.com/Mate1592/filament/releases)
+[![Versión](https://img.shields.io/badge/Versión-v1.0.0-orange.svg)](https://github.com/Mate1592/FILOTEK_ANYCUBIC/releases)
 
 ---
 
@@ -55,7 +55,7 @@
 
 No es necesario compilar código ni instalar herramientas de desarrollo:
 
-1. Ve a la pestaña de **[Releases](https://github.com/Mate1592/filament/releases)** en este repositorio.
+1. Ve a la pestaña de **[Releases](https://github.com/Mate1592/FILOTEK_ANYCUBIC/releases)** en este repositorio.
 2. Descarga el archivo **`Filoteca-Portable-1.0.0.exe`**.
 3. Haz doble clic sobre el archivo ejecutable para iniciar Filoteca de inmediato. Puedes llevarlo en una memoria USB o dejarlo en tu carpeta de herramientas.
 
@@ -63,8 +63,8 @@ No es necesario compilar código ni instalar herramientas de desarrollo:
 
 ## Comunidad y Participación
 
-- **Dudas, ideas y fotos de talleres:** Participa en [GitHub Discussions](https://github.com/Mate1592/filament/discussions) para compartir mejoras y configuraciones de impresión.
-- **Reporte de errores:** Abre un [GitHub Issue](https://github.com/Mate1592/filament/issues) detallando el problema o sugiriendo nuevas marcas de filamentos.
+- **Dudas, ideas y fotos de talleres:** Participa en [GitHub Discussions](https://github.com/Mate1592/FILOTEK_ANYCUBIC/discussions) para compartir mejoras y configuraciones de impresión.
+- **Reporte de errores:** Abre un [GitHub Issue](https://github.com/Mate1592/FILOTEK_ANYCUBIC/issues) detallando el problema o sugiriendo nuevas marcas de filamentos.
 
 ---
 
