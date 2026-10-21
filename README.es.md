@@ -21,9 +21,6 @@ Filoteca transforma las típicas hojas de cálculo aburridas en una estantería 
 ### Inspección Táctil 360° y Detalle de Bobina
 ![Visor interactivo 3D con inercia y control de peso](docs/screenshots/02-modal-3d.png)
 
-### Bandeja Automática de Laminados (Slicer Companion)
-![Bandeja de laminados con detección de ranuras y colores](docs/screenshots/03-companion.png)
-
 ### Previsión de Reabastecimiento y Ritmo de Consumo
 ![Gráficos de previsión y ritmo de consumo](docs/screenshots/04-replenishment.png)
 
@@ -51,6 +48,28 @@ Filoteca transforma las típicas hojas de cálculo aburridas en una estantería 
     </td>
   </tr>
 </table>
+
+---
+
+## 💡 Ejemplo Real: Del Laminador a Filoteca en Segundos
+
+Así es como funciona en el día a día la sincronización entre **Anycubic Slicer Next Gen** y Filoteca:
+
+1. **Laminas tu pieza en Anycubic Slicer:**  
+   Preparas un diseño (por ejemplo, el proyecto multicolor *"EXTERN, THOMAS, EDUADRO"* con 2 colores), configuras tus materiales y haces clic en **"Laminar" (Slice)**.
+2. **Detección automática en segundo plano:**  
+   Sin tener que exportar ni arrastrar ningún archivo, Filoteca captura al instante la placa generada. La barra superior muestra la insignia reactiva `Bandeja (1)`.
+3. **El trabajo aparece listo con todos sus detalles:**  
+   Al abrir la bandeja de Filoteca, la tarjeta de la pieza ya está preparada con:
+   - **Miniatura 3D renderizada** de la placa y nombre del modelo.
+   - **Tiempos y capas:** `53 minutos`, `22 capas`, `6 cambios de color`.
+   - **Ranuras detectadas:** Ranura 1 con `2.1 g` (Rojo) y Ranura 2 con `13 g` (Azul).
+   - **Emparejamiento inteligente:** Filoteca preselecciona tus bobinas *"Rojo lava"* y *"Azul Real"* con coincidencia exacta de color.
+4. **Confirmas sólo si la impresión fue exitosa:**  
+   - Si la pieza terminó perfecta: pulsas **"✓ Lo imprimí"** y se descuentan los 15 gramos automáticamente de tu stock.
+   - Si la boquilla se atascó o se canceló: marcas **"Falló / parcial"** o **"No lo imprimí"** y tu inventario no se descuenta por error.
+
+![Ejemplo de Bandeja de Laminados](docs/screenshots/03-companion.png)
 
 ---
 

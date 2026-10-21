@@ -21,9 +21,6 @@ Filoteca turns boring inventory spreadsheets into an interactive 3D workshop she
 ### 360° Spool Inspection & Details
 ![Spool Modal View](docs/screenshots/02-modal-3d.png)
 
-### Slicer Companion Tray
-![Slicer Companion Tray](docs/screenshots/03-companion.png)
-
 ### Smart Replenishment & Consumption Forecast
 ![Replenishment Forecast](docs/screenshots/04-replenishment.png)
 
@@ -51,6 +48,28 @@ Filoteca turns boring inventory spreadsheets into an interactive 3D workshop she
     </td>
   </tr>
 </table>
+
+---
+
+## 💡 Real Workflow Example: From Slicer to Filoteca in Seconds
+
+Here is what your daily workflow looks like when using **Anycubic Slicer Next Gen** alongside Filoteca:
+
+1. **Slice your model in Anycubic Slicer:**  
+   You prepare a multi-color print (for instance, the *"EXTERN, THOMAS, EDUADRO"* dual-color project), assign your colors (red and blue), and click **"Slice"**.
+2. **Instant Background Detection:**  
+   Without manual exports or dragging files, Filoteca automatically detects the newly sliced plate in the background. The title bar lights up with a subtle `Slicer Tray (1)` badge.
+3. **Your Job Appears Ready with Full Details:**  
+   Switch to Filoteca and the print card is already populated:
+   - **3D Plate thumbnail preview** and model name.
+   - **Estimated stats:** `53 minutes`, `22 layers`, `6 color changes`.
+   - **Color slots detected:** Slot #1 with `2.1 g` (Red) and Slot #2 with `13 g` (Blue).
+   - **Auto-matched spools:** Filoteca pre-selects your *"Rojo lava"* and *"Azul Real"* spools with exact color matches.
+4. **You Only Confirm What Actually Prints:**  
+   - Print finished successfully? Click **"✓ Lo imprimí" (I Printed It)** and 15 grams are deducted with pinpoint accuracy from your 3D spools.
+   - Print canceled or failed mid-way? Select **"Failed / Partial"** or **"Didn't Print"**, and your inventory is never mistakenly deducted.
+
+![Slicer Companion Workflow Example](docs/screenshots/03-companion.png)
 
 ---
 
