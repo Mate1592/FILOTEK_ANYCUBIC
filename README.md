@@ -1,28 +1,79 @@
-# Filoteca 🧵
+<h1 align="center">Filoteca 🧵</h1>
 
-[🇪🇸 Leer en Español](README.es.md) | [🇺🇸 English]
+<p align="center">
+  <b>3D Printing Filament Inventory — Visual, Smart & 100% Offline</b>
+</p>
 
-![Windows 10/11 x64](https://img.shields.io/badge/Windows-10%2F11%20x64-0078D6?style=flat-square&logo=windows)
-![MIT License](https://img.shields.io/badge/License-MIT-green?style=flat-square)
-![100% Offline](https://img.shields.io/badge/100%25-Offline-4CAF50?style=flat-square)
-![Version](https://img.shields.io/badge/Version-v1.0.1-blue?style=flat-square)
+<p align="center">
+  <a href="README.es.md">🇪🇸 Leer en Español</a> · <a href="#">🇺🇸 English</a>
+</p>
 
-> **3D Printing Filament Inventory** — Developed by **TermuxX solutions**. A modern, visual, and 100% offline desktop application for Windows. Manage your workshop spools in interactive 3D, track filament levels visually, get smart restock alerts, and connect seamlessly with Anycubic Slicer Next Gen.
+<p align="center">
+  <img src="https://img.shields.io/badge/Windows-10%2F11%20x64-0078D6?style=flat-square&logo=windows" alt="Windows 10/11 x64" />
+  <img src="https://img.shields.io/badge/License-MIT-green?style=flat-square" alt="MIT License" />
+  <img src="https://img.shields.io/badge/100%25-Offline-4CAF50?style=flat-square" alt="100% Offline" />
+  <img src="https://img.shields.io/badge/Version-v1.0.1-blue?style=flat-square" alt="Version" />
+</p>
 
-Filoteca turns boring inventory spreadsheets into an interactive 3D workshop shelf. Inspect your spools in real-time 3D, admire realistic material finishes (silk, matte, glossy, translucent, glitter), and never run out of filament in the middle of a print job again.
+> Developed by **TermuxX solutions** — A modern desktop app that turns boring filament spreadsheets into an interactive 3D workshop shelf. Manage spools visually, track consumption in real time, get smart restock alerts, and connect seamlessly with your slicer.
 
 ---
 
-## 📸 Visual Showcase
+## 🧵 Spool Management & 3D Visualization
 
-### Interactive 3D Spool Shelf
-![Main 3D Spool Shelf](docs/screenshots/01-shelf-3d.png)
+Every spool in your inventory is rendered as a **realistic 3D model** that reflects its actual color, material finish, and remaining filament level. No more guessing how much is left on a roll — just look at it.
 
-### 360° Spool Inspection & Details
-![Spool Modal View](docs/screenshots/02-modal-3d.png)
+![Interactive 3D Spool Shelf](docs/screenshots/01-shelf-3d.png)
 
-### Smart Replenishment & Consumption Forecast
-![Replenishment Forecast](docs/screenshots/04-replenishment.png)
+- **Real-Time Filament Level** — The 3D spool shrinks proportionally to the actual remaining weight. A spool at 30% looks like a spool at 30%.
+- **Authentic Material Finishes** — Each spool renders with its real-world finish: matte, glossy, silk (pearly sheen), translucent, or glitter.
+- **360° Interactive Inspection** — Click any spool to open a detailed view where you can spin, rotate, and examine it from every angle with smooth inertia.
+- **Complete Spool Details** — Temperatures, cost per gram, supplier, physical storage location, purchase date, and notes — all at a glance.
+
+![Spool Detail — 3D Viewer, Stats & Supplier Info](docs/screenshots/05-spool-detail.png)
+
+---
+
+## 🤖 Automatic Slicer Detection
+
+Filoteca watches your slicer's temp folder in the background. The moment you slice a model, it appears automatically in Filoteca's **Companion Tray** — no manual exports, no drag & drop, no file browsing.
+
+![Anycubic Slicer Next Gen — Sliced Model Ready](docs/screenshots/07-anycubic-slicer.png)
+
+- **Instant Background Detection** — Slice your model and Filoteca picks it up silently. A subtle badge `Slicer Tray (1)` lights up in the title bar.
+- **Auto Color Matching** — Each color slot is automatically matched to the best spool from your inventory based on color similarity, brand, and material type.
+- **Multi-Color Support** — Full support for multi-material setups (Anycubic ACE Pro / Kobra Series) with per-slot weight tracking.
+- **You Decide What Counts** — Nothing is deducted without your confirmation:
+  - ✅ **"I Printed It"** — Deducts the exact grams from your stock.
+  - ⚠️ **"Failed / Partial"** — Adjust the percentage actually used.
+  - ❌ **"Didn't Print / Discard"** — No deduction, job archived.
+
+![Companion Tray — Auto-Detected Slicer Jobs](docs/screenshots/06-companion-tray.png)
+
+---
+
+## 📊 Workshop Statistics & Insights
+
+A built-in analytics dashboard gives you a bird's-eye view of your entire workshop inventory with interactive charts and key performance indicators.
+
+![Statistics Dashboard — Materials, Brands & KPIs](docs/screenshots/08-statistics.png)
+
+- **Material Distribution** — See how your inventory breaks down by filament type (PLA, PETG, ABS, TPU, etc.) with interactive donut charts.
+- **Brand Overview** — Track which brands dominate your shelf and compare inventory value across suppliers.
+- **Workshop KPIs** — Total spools, total weight in stock, total inventory value (in your local currency), and average cost per gram.
+
+---
+
+## 🛡️ Smart Inventory & Restock Alerts
+
+Never run out of filament mid-print again. Filoteca monitors your consumption patterns and warns you before it's too late.
+
+![Smart Replenishment Forecast](docs/screenshots/04-replenishment.png)
+
+- **Consumption Forecast** — Tracks your 30-day usage per spool and estimates when you'll run out.
+- **Traffic-Light Alerts** — 🔴 Critical (order now), 🟡 Soon (plan ahead), 🟢 Ready (all good).
+- **Backup Spool Awareness** — Already have a sealed replacement? Filoteca detects it and adjusts the urgency.
+- **One-Click Shopping List** — Add low-stock spools directly to your purchasing list.
 
 ---
 
@@ -36,76 +87,40 @@ Filoteca turns boring inventory spreadsheets into an interactive 3D workshop she
       <b>Anycubic Slicer Next Gen</b>
       <br />
       <code>✅ Native Support Active</code>
-      <p>Automatic detection of sliced projects, multi-color slots (Anycubic ACE Pro / Kobra Series), print previews, and material estimates.</p>
+      <p>Automatic detection of sliced projects, multi-color slots, print previews, and material estimates.</p>
     </td>
     <td align="center" width="50%">
       <img src="docs/assets/orcaslicer.png" width="90" alt="OrcaSlicer" />
       <br /><br />
       <b>OrcaSlicer</b>
       <br />
-      <code>🚀 Coming Soon / En Desarrollo</code>
-      <p>Port currently in active development! Native OrcaSlicer compatibility will be available in an upcoming update.</p>
+      <code>🚀 Coming Soon</code>
+      <p>Native OrcaSlicer compatibility is currently in active development and will be available in an upcoming update.</p>
     </td>
   </tr>
 </table>
 
 ---
 
-## 💡 Real Workflow Example: From Slicer to Filoteca in Seconds
+## 🌍 Multi-Language, Currency & Themes
 
-Here is what your daily workflow looks like when using **Anycubic Slicer Next Gen** alongside Filoteca:
-
-1. **Slice your model in Anycubic Slicer:**  
-   You prepare a multi-color print (for instance, the *"EXTERN, THOMAS, EDUADRO"* dual-color project), assign your colors (red and blue), and click **"Slice"**.
-2. **Instant Background Detection:**  
-   Without manual exports or dragging files, Filoteca automatically detects the newly sliced plate in the background. The title bar lights up with a subtle `Slicer Tray (1)` badge.
-3. **Your Job Appears Ready with Full Details:**  
-   Switch to Filoteca and the print card is already populated:
-   - **3D Plate thumbnail preview** and model name.
-   - **Estimated stats:** `53 minutes`, `22 layers`, `6 color changes`.
-   - **Color slots detected:** Slot #1 with `2.1 g` (Red) and Slot #2 with `13 g` (Blue).
-   - **Auto-matched spools:** Filoteca pre-selects your *"Rojo lava"* and *"Azul Real"* spools with exact color matches.
-4. **You Only Confirm What Actually Prints:**  
-   - Print finished successfully? Click **"✓ Lo imprimí" (I Printed It)** and 15 grams are deducted with pinpoint accuracy from your 3D spools.
-   - Print canceled or failed mid-way? Select **"Failed / Partial"** or **"Didn't Print"**, and your inventory is never mistakenly deducted.
-
-![Slicer Companion Workflow Example](docs/screenshots/03-companion.png)
+- **3 Languages Built-In** — English, Español 🇨🇴, and Português 🇧🇷.
+- **Local Currency Support** — COP (\$), USD (\$), EUR (€), BRL (R\$), and more.
+- **Dark & Light Modes** — A polished maker aesthetic designed for your workshop.
 
 ---
 
-## ✨ Highlights & Features
+## 🔒 100% Offline & Private
 
-### 🎨 Realistic 3D Spool Viewer
-- **True-to-Life Remaining Filament:** Visually see how much filament is actually left on each roll at a glance.
-- **Authentic PBR Finishes:** Presets for matte, glossy, silk (pearly shine), translucent, and glitter materials with accurate color reproduction.
-- **Interactive 360° Inspection:** Spin, rotate, and inspect your spools in 3D right on your shelf.
-- **Silky Smooth & Lightweight:** Runs fast without overheating your computer or draining resources while you work.
-
-### 🤖 Automatic Slicer Companion
-- **Hands-Free Ingestion:** Filoteca automatically detects your sliced jobs from Anycubic Slicer Next Gen, extracting the model thumbnail, estimated weights, and print times.
-- **Smart Color Matching:** Automatically suggests the best matching spools from your inventory for each color slot.
-- **You Are in Control:** Nothing is deducted without your consent. Easily confirm jobs once printing is done, avoiding accidental deductions if a print fails or is canceled.
-
-### 🛡️ Smart Inventory & Restock Alerts
-- **Backup Spool Awareness:** Low on a filament? Filoteca recognizes if you already have a sealed replacement spool of the same brand and color in storage, preventing unnecessary alarms.
-- **Restocking Forecast:** Visual alerts (Critical, Soon, Ready) so you can plan purchases ahead of time.
-- **Built-in Shopping List:** Add low-stock filaments to your shopping list with a single click.
-
-### 🌍 Multi-Language & Custom Currency
-- **Bilingual & Multi-Language:** Built-in support for **English**, **Español** 🇨🇴, and **Português** 🇧🇷.
-- **Local Currency Support:** Track costs accurately in COP ($), USD ($), EUR (€), BRL (R$), and more.
-- **Dark & Light Themes:** Tailored maker aesthetic designed for 3D printing studios and workshops.
-
-### 🔒 100% Offline & Private
-- **Zero Cloud Dependence:** All your spools, prices, and workshop history live solely on your computer. No login accounts, no internet required, no subscriptions.
+Your data never leaves your computer. No accounts, no cloud, no internet required, no subscriptions. All spool data, prices, and workshop history are stored locally on your PC.
 
 ---
 
 ## 🚀 Quick Start (No Installation Required)
 
-1. Go to the **[Releases](https://github.com/Mate1592/FILOTEK_ANYCUBIC/releases)** section.
-2. Download the standalone executable: **`Filoteca-Portable-1.0.1.exe`**.
-3. Double-click to launch immediately! You can run it directly from your desktop or a USB drive.
+1. Go to **[Releases](https://github.com/Mate1592/FILOTEK_ANYCUBIC/releases)**.
+2. Download **`Filoteca-Portable-1.0.1.exe`**.
+3. Double-click to launch — runs from your desktop or a USB drive.
 
 *(An optional installer `Filoteca Setup 1.0.1.exe` is also available if you prefer Start Menu shortcuts).*
 
@@ -113,21 +128,21 @@ Here is what your daily workflow looks like when using **Anycubic Slicer Next Ge
 
 ## 👥 Community & Getting Involved
 
-- **Discussions & Ideas:** Join [GitHub Discussions](https://github.com/Mate1592/FILOTEK_ANYCUBIC/discussions) to share your prints and workshop setup.
-- **Bug Reports & Suggestions:** Open a [GitHub Issue](https://github.com/Mate1592/FILOTEK_ANYCUBIC/issues) to suggest new filament brands or features.
+- **Discussions & Ideas:** [GitHub Discussions](https://github.com/Mate1592/FILOTEK_ANYCUBIC/discussions)
+- **Bug Reports & Suggestions:** [GitHub Issues](https://github.com/Mate1592/FILOTEK_ANYCUBIC/issues)
 
 ---
 
 ## ☕ Support & Donations
 
-Filoteca is an open-source project created by **TermuxX solutions** for the global 3D printing community. If this software helps organize your workshop and saves you filament, consider supporting its continuous development:
+Filoteca is open-source, built by **TermuxX solutions** for the global 3D printing community. If it helps organize your workshop and saves you filament, consider supporting its development:
 
 ### Colombia 🇨🇴 (Local Payments)
-- **Wompi / PSE / Nequi / Bancolombia / Cards:**  
+- **Wompi / PSE / Nequi / Bancolombia / Cards:**
   👉 [checkout.wompi.co/l/miKi8F](https://checkout.wompi.co/l/miKi8F)
 
 ### Global 🌎 (International Payments)
-- **PayPal:**  
+- **PayPal:**
   👉 [paypal.me/matec15](https://paypal.me/matec15)
 
 ---
