@@ -510,11 +510,11 @@ export function SettingsView() {
               <span>Vigilancia automática en tiempo real</span>
             </span>
             <span className="text-[10px] font-mono text-ok flex items-center gap-1 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
-              <Check size={12} /> Anycubic Temp Activo
+              <Check size={12} /> Anycubic + OrcaSlicer Activo
             </span>
           </div>
           <p className="text-xs text-muted">
-            Filoteca vigila recursivamente <code className="text-accent-text font-mono text-[11px]">%LOCALAPPDATA%\Temp\anycubicslicer_model\</code> en segundo plano. Si usas OrcaSlicer o una carpeta personalizada, puedes configurarla abajo:
+            Filoteca vigila recursivamente las carpetas temporales de <code className="text-accent-text font-mono text-[11px]">Anycubic Slicer Next</code> y <code className="text-accent-text font-mono text-[11px]">OrcaSlicer</code> en segundo plano. Si usas una carpeta personalizada adicional, puedes configurarla abajo:
           </p>
 
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
@@ -867,7 +867,7 @@ export function SettingsView() {
 
       {/* Footer Info */}
       <div className="pt-2 text-center text-xs text-faint font-mono">
-        Filoteca v1.0.1 · {t('developedBy')} · 100% Offline
+        Filoteca v1.1.0 · {t('developedBy')} · 100% Offline
       </div>
     </div>
   );

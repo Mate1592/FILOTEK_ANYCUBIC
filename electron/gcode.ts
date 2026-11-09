@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import zlib from 'node:zlib';
 import type { GcodeJob, Roll } from '../src/shared/types';
-import { parseGcodeText } from '../src/lib/gcodeParser';
+import { parseGcodeText, formatJobName } from '../src/lib/gcodeParser';
 
 /** Extrae texto de un buffer, soportando ZIP/3MF de forma nativa sin dependencias */
 export function extractGcodeText(buf: Buffer): string {
@@ -162,6 +162,46 @@ export function parseGcodeFileFromDisk(
           const dest = path.join(thumbnailsDir, `${job.id}_512.png`);
           fs.copyFileSync(fallbackPlate, dest);
           job.thumbnailLargePath = dest;
+        }
+      }
+    }
+
+    // Si no se detectaron nombres de modelos en el gcode, buscar en plate_N.json o origin.txt (OrcaSlicer / Bambu)
+    if (!job.modelNames || job.modelNames.length === 0) {
+      const dir = path.dirname(targetPath);
+      const plateJsonPath = path.join(dir, `plate_${job.plateIndex}.json`);
+      if (fs.existsSync(plateJsonPath)) {
+        try {
+          const raw = fs.readFileSync(plateJsonPath, 'utf8');
+          const data = JSON.parse(raw);
+          if (Array.isArray(data.bbox_objects)) {
+            const names = data.bbox_objects.map((o: any) => o.name).filter(Boolean);
+            if (names.length > 0) {
+              job.modelNames = names;
+              job.jobName = formatJobName(names, job.plateIndex, job.slicedAt?.replace('T', ' '));
+            }
+          }
+        } catch {
+          /* ignore */
+        }
+      }
+
+      if (!job.modelNames || job.modelNames.length === 0) {
+        const parentDir = path.dirname(dir);
+        const originTxtPath = path.join(parentDir, 'origin.txt');
+        if (fs.existsSync(originTxtPath)) {
+          try {
+            const raw = fs.readFileSync(originTxtPath, 'utf8').trim();
+            if (raw) {
+              const base = path.basename(raw).replace(/\.[^/.]+$/, '');
+              if (base) {
+                job.modelNames = [base];
+                job.jobName = formatJobName([base], job.plateIndex, job.slicedAt?.replace('T', ' '));
+              }
+            }
+          } catch {
+            /* ignore */
+          }
         }
       }
     }

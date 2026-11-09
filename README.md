@@ -12,7 +12,7 @@
   <img src="https://img.shields.io/badge/Windows-10%2F11%20x64-0078D6?style=flat-square&logo=windows" alt="Windows 10/11 x64" />
   <img src="https://img.shields.io/badge/License-MIT-green?style=flat-square" alt="MIT License" />
   <img src="https://img.shields.io/badge/100%25-Offline-4CAF50?style=flat-square" alt="100% Offline" />
-  <img src="https://img.shields.io/badge/Version-v1.0.1-blue?style=flat-square" alt="Version" />
+  <img src="https://img.shields.io/badge/Version-v1.1.0-blue?style=flat-square" alt="Version" />
 </p>
 
 > Developed by **TermuxX solutions** — A modern desktop app that turns boring filament spreadsheets into an interactive 3D workshop shelf. Manage spools visually, track consumption in real time, get smart restock alerts, and connect seamlessly with your slicer.
@@ -131,8 +131,8 @@ Quickly register new filament rolls with brand quick-pick chips, hex color palet
       <br /><br />
       <b>OrcaSlicer</b>
       <br />
-      <code>🚀 Coming Soon</code>
-      <p>Native OrcaSlicer compatibility is currently in active development and will be available in an upcoming update.</p>
+      <code>✅ Native Support Active</code>
+      <p>Automatic detection of sliced projects, plate previews, multi-material slots, and real-time companion support.</p>
     </td>
   </tr>
 </table>
@@ -164,10 +164,10 @@ Your data never leaves your computer. No accounts, no cloud, no internet require
 ## 🚀 Quick Start (No Installation Required)
 
 1. Go to **[Releases](https://github.com/Mate1592/FILOTEK_ANYCUBIC/releases)**.
-2. Download **`Filoteca-Portable-1.0.1.exe`**.
+2. Download **`Filoteca-Portable-1.1.0.exe`**.
 3. Double-click to launch — runs from your desktop or a USB drive.
 
-*(An optional installer `Filoteca Setup 1.0.1.exe` is also available if you prefer Start Menu shortcuts).*
+*(An optional installer `Filoteca Setup 1.1.0.exe` is also available if you prefer Start Menu shortcuts).*
 
 ---
 

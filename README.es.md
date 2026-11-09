@@ -12,7 +12,7 @@
   <img src="https://img.shields.io/badge/Windows-10%2F11%20x64-0078D6?style=flat-square&logo=windows" alt="Windows 10/11 x64" />
   <img src="https://img.shields.io/badge/Licencia-MIT-green?style=flat-square" alt="MIT License" />
   <img src="https://img.shields.io/badge/100%25-Offline-4CAF50?style=flat-square" alt="100% Offline" />
-  <img src="https://img.shields.io/badge/Versión-v1.0.1-blue?style=flat-square" alt="Version" />
+  <img src="https://img.shields.io/badge/Versión-v1.1.0-blue?style=flat-square" alt="Version" />
 </p>
 
 > Desarrollado por **TermuxX solutions** — Una aplicación de escritorio moderna que transforma las típicas hojas de cálculo de filamento en una estantería 3D interactiva para tu taller. Gestiona tus bobinas visualmente, controla el consumo en tiempo real, recibe alertas de reabastecimiento y sincroniza automáticamente con tu laminador.
@@ -131,8 +131,8 @@ Registra nuevos rollos de filamento rápidamente con chips de marca, paleta de c
       <br /><br />
       <b>OrcaSlicer</b>
       <br />
-      <code>🚀 Próximamente</code>
-      <p>La compatibilidad nativa con OrcaSlicer está actualmente en desarrollo activo y estará disponible en una próxima actualización.</p>
+      <code>✅ Integración Nativa Activa</code>
+      <p>Detección automática de piezas laminadas, miniaturas de placa, ranuras multimaterial y soporte companion en tiempo real.</p>
     </td>
   </tr>
 </table>
@@ -164,10 +164,10 @@ Tus datos nunca salen de tu computador. Sin cuentas, sin nube, sin internet, sin
 ## 🚀 Descarga Rápida (Sin Instalación)
 
 1. Ve a **[Releases](https://github.com/Mate1592/FILOTEK_ANYCUBIC/releases)**.
-2. Descarga **`Filoteca-Portable-1.0.1.exe`**.
+2. Descarga **`Filoteca-Portable-1.1.0.exe`**.
 3. Doble clic para iniciar — funciona desde tu escritorio o una memoria USB.
 
-*(También hay disponible un instalador clásico `Filoteca Setup 1.0.1.exe` si prefieres accesos directos en el Menú Inicio).*
+*(También hay disponible un instalador clásico `Filoteca Setup 1.1.0.exe` si prefieres accesos directos en el Menú Inicio).*
 
 ---
 

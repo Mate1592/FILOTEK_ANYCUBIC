@@ -221,12 +221,17 @@ function handle<T>(channel: string, fn: (...args: any[]) => T | Promise<T>) {
 
 const getThumbnailsDir = () => path.join(app.getPath('userData'), 'thumbnails');
 
-function getAnycubicTempDir(): string {
+function getSlicerTempDirs(): string[] {
   const localAppData = process.env.LOCALAPPDATA || path.join(process.env.USERPROFILE || '', 'AppData', 'Local');
-  return path.join(localAppData, 'Temp', 'anycubicslicer_model');
+  const tempRoot = path.join(localAppData, 'Temp');
+  return [
+    path.join(tempRoot, 'anycubicslicer_model'),
+    path.join(tempRoot, 'orcaslicer_model'),
+    path.join(tempRoot, 'bambustudio_model'),
+  ];
 }
 
-let tempWatcher: fs.FSWatcher | null = null;
+let tempWatchers: fs.FSWatcher[] = [];
 let customWatcher: fs.FSWatcher | null = null;
 const processedGcodeKeys = new Set<string>();
 const recentIngestTimestamps = new Map<string, number>();
@@ -303,29 +308,40 @@ function setupWatchedFolder(folderPath: string) {
 }
 
 function startTempDirWatcher() {
-  const tempDir = getAnycubicTempDir();
-  if (!fs.existsSync(tempDir)) {
+  for (const w of tempWatchers) {
     try {
-      fs.mkdirSync(tempDir, { recursive: true });
+      w.close();
     } catch {
       /* ignore */
     }
   }
-  if (fs.existsSync(tempDir)) {
-    try {
-      tempWatcher = fs.watch(tempDir, { recursive: true, persistent: false }, (_event, filename) => {
-        if (!filename) return;
-        handleIncomingGcodeFile(path.join(tempDir, filename));
-      });
-    } catch (err) {
-      console.warn('[watch] Error al observar carpeta temporal de Anycubic:', err);
+  tempWatchers = [];
+
+  const tempDirs = getSlicerTempDirs();
+  for (const tempDir of tempDirs) {
+    if (!fs.existsSync(tempDir)) {
+      try {
+        fs.mkdirSync(tempDir, { recursive: true });
+      } catch {
+        /* ignore */
+      }
+    }
+    if (fs.existsSync(tempDir)) {
+      try {
+        const watcher = fs.watch(tempDir, { recursive: true, persistent: false }, (_event, filename) => {
+          if (!filename) return;
+          handleIncomingGcodeFile(path.join(tempDir, filename));
+        });
+        tempWatchers.push(watcher);
+      } catch (err) {
+        console.warn(`[watch] Error al observar carpeta temporal (${path.basename(tempDir)}):`, err);
+      }
     }
   }
 }
 
 function scanRecentTempSlices() {
-  const tempDir = getAnycubicTempDir();
-  if (!fs.existsSync(tempDir)) return;
+  const tempDirs = getSlicerTempDirs();
   try {
     const files: string[] = [];
     function walk(dir: string, depth = 0) {
@@ -347,7 +363,12 @@ function scanRecentTempSlices() {
         /* ignore */
       }
     }
-    walk(tempDir);
+
+    for (const tempDir of tempDirs) {
+      if (fs.existsSync(tempDir)) {
+        walk(tempDir);
+      }
+    }
 
     const snapshot = db.load();
     const existingJobHashes = new Set(snapshot.gcodeJobs.map((j) => j.fileHash || j.filepath));
@@ -380,10 +401,18 @@ function scanRecentTempSlices() {
 function checkSlicerRunning(targetExe: string): Promise<boolean> {
   return new Promise((resolve) => {
     if (process.platform !== 'win32') return resolve(false);
-    const cleanExe = (targetExe || 'AnycubicSlicerNext.exe').trim().replace(/^"|"$/g, '');
-    exec(`tasklist /fo csv /nh /fi "IMAGENAME eq ${cleanExe}"`, (err, stdout) => {
+    const cleanExe = (targetExe || '').trim().replace(/^"|"$/g, '');
+    const isDefault = !cleanExe || cleanExe.toLowerCase() === 'anycubicslicernext.exe';
+
+    // Si es el valor por defecto, comprobar Anycubic u OrcaSlicer indistintamente
+    const targets = isDefault
+      ? ['anycubicslicernext.exe', 'orca-slicer.exe', 'orcaslicer.exe', 'bambustudio.exe']
+      : [cleanExe.toLowerCase()];
+
+    exec('tasklist /fo csv /nh', (err, stdout) => {
       if (err || !stdout) return resolve(false);
-      const isRunning = stdout.toLowerCase().includes(cleanExe.toLowerCase());
+      const lowerOut = stdout.toLowerCase();
+      const isRunning = targets.some((t) => lowerOut.includes(t));
       resolve(isRunning);
     });
   });
