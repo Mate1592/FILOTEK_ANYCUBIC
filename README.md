@@ -23,14 +23,42 @@
 
 Every spool in your inventory is rendered as a **realistic 3D model** that reflects its actual color, material finish, and remaining filament level. No more guessing how much is left on a roll — just look at it.
 
-![Interactive 3D Spool Shelf](docs/screenshots/01-shelf-3d.png)
+<table>
+<tr>
+<td width="50%">
+
+### ☀️ Light Mode
+![Shelf Light Mode](docs/screenshots/gallery/01-shelf-light.png)
+
+</td>
+<td width="50%">
+
+### 🌙 Dark Mode
+![Shelf Dark Mode](docs/screenshots/gallery/03-shelf-dark.png)
+
+</td>
+</tr>
+</table>
 
 - **Real-Time Filament Level** — The 3D spool shrinks proportionally to the actual remaining weight. A spool at 30% looks like a spool at 30%.
 - **Authentic Material Finishes** — Each spool renders with its real-world finish: matte, glossy, silk (pearly sheen), translucent, or glitter.
 - **360° Interactive Inspection** — Click any spool to open a detailed view where you can spin, rotate, and examine it from every angle with smooth inertia.
 - **Complete Spool Details** — Temperatures, cost per gram, supplier, physical storage location, purchase date, and notes — all at a glance.
 
-![Spool Detail — 3D Viewer, Stats & Supplier Info](docs/screenshots/05-spool-detail.png)
+<table>
+<tr>
+<td width="50%">
+
+![Spool Detail — PETG Blanco Nube 100%](docs/screenshots/gallery/04-spool-detail.png)
+
+</td>
+<td width="50%">
+
+![Spool Detail — PLA Negro Carbón 87%](docs/screenshots/gallery/05-spool-detail-2.png)
+
+</td>
+</tr>
+</table>
 
 ---
 
@@ -38,9 +66,9 @@ Every spool in your inventory is rendered as a **realistic 3D model** that refle
 
 Filoteca watches your slicer's temp folder in the background. The moment you slice a model, it appears automatically in Filoteca's **Companion Tray** — no manual exports, no drag & drop, no file browsing.
 
-![Anycubic Slicer Next Gen — Sliced Model Ready](docs/screenshots/07-anycubic-slicer.png)
+![Companion Tray — Auto-Detected Slicer Jobs](docs/screenshots/gallery/10-companion-tray.png)
 
-- **Instant Background Detection** — Slice your model and Filoteca picks it up silently. A subtle badge `Slicer Tray (1)` lights up in the title bar.
+- **Instant Background Detection** — Slice your model and Filoteca picks it up silently. A subtle badge `Slicer Tray (2)` lights up in the title bar.
 - **Auto Color Matching** — Each color slot is automatically matched to the best spool from your inventory based on color similarity, brand, and material type.
 - **Multi-Color Support** — Full support for multi-material setups (Anycubic ACE Pro / Kobra Series) with per-slot weight tracking.
 - **You Decide What Counts** — Nothing is deducted without your confirmation:
@@ -48,19 +76,18 @@ Filoteca watches your slicer's temp folder in the background. The moment you sli
   - ⚠️ **"Failed / Partial"** — Adjust the percentage actually used.
   - ❌ **"Didn't Print / Discard"** — No deduction, job archived.
 
-![Companion Tray — Auto-Detected Slicer Jobs](docs/screenshots/06-companion-tray.png)
-
 ---
 
 ## 📊 Workshop Statistics & Insights
 
 A built-in analytics dashboard gives you a bird's-eye view of your entire workshop inventory with interactive charts and key performance indicators.
 
-![Statistics Dashboard — Materials, Brands & KPIs](docs/screenshots/08-statistics.png)
+![Statistics Dashboard — Materials, Brands & KPIs](docs/screenshots/gallery/07-statistics.png)
 
 - **Material Distribution** — See how your inventory breaks down by filament type (PLA, PETG, ABS, TPU, etc.) with interactive donut charts.
 - **Brand Overview** — Track which brands dominate your shelf and compare inventory value across suppliers.
 - **Workshop KPIs** — Total spools, total weight in stock, total inventory value (in your local currency), and average cost per gram.
+- **Treemap Visualization** — See every spool hierarchically organized by material → brand → color.
 
 ---
 
@@ -68,12 +95,22 @@ A built-in analytics dashboard gives you a bird's-eye view of your entire worksh
 
 Never run out of filament mid-print again. Filoteca monitors your consumption patterns and warns you before it's too late.
 
-![Smart Replenishment Forecast](docs/screenshots/04-replenishment.png)
+![Smart Replenishment Forecast](docs/screenshots/gallery/08-replenishment.png)
 
 - **Consumption Forecast** — Tracks your 30-day usage per spool and estimates when you'll run out.
 - **Traffic-Light Alerts** — 🔴 Critical (order now), 🟡 Soon (plan ahead), 🟢 Ready (all good).
 - **Backup Spool Awareness** — Already have a sealed replacement? Filoteca detects it and adjusts the urgency.
 - **One-Click Shopping List** — Add low-stock spools directly to your purchasing list.
+
+![Shopping List with Auto-Suggestions](docs/screenshots/gallery/09-shopping.png)
+
+---
+
+## 🛒 Add & Edit Spools
+
+Quickly register new filament rolls with brand quick-pick chips, hex color palette, material presets, and a live 3D preview that updates as you type.
+
+![Add New Spool Modal](docs/screenshots/gallery/06-add-roll.png)
 
 ---
 
@@ -99,6 +136,14 @@ Never run out of filament mid-print again. Filoteca monitors your consumption pa
     </td>
   </tr>
 </table>
+
+---
+
+## ⚙️ Fully Customizable Settings
+
+Configure theme, language, alert thresholds, restock lead times, and slicer companion behavior — all from a clean settings panel.
+
+![Settings Panel](docs/screenshots/gallery/02-settings.png)
 
 ---
 

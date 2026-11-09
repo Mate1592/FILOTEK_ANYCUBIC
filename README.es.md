@@ -23,14 +23,42 @@
 
 Cada bobina de tu inventario se renderiza como un **modelo 3D realista** que refleja su color real, el acabado del material y el nivel de filamento restante. No más adivinanzas — solo mírala.
 
-![Estantería 3D Interactiva](docs/screenshots/01-shelf-3d.png)
+<table>
+<tr>
+<td width="50%">
+
+### ☀️ Modo Claro
+![Estantería Modo Claro](docs/screenshots/gallery/01-shelf-light.png)
+
+</td>
+<td width="50%">
+
+### 🌙 Modo Oscuro
+![Estantería Modo Oscuro](docs/screenshots/gallery/03-shelf-dark.png)
+
+</td>
+</tr>
+</table>
 
 - **Nivel de Filamento en Tiempo Real** — La bobina 3D se reduce proporcionalmente al peso restante. Una bobina al 30% se ve como una bobina al 30%.
 - **Acabados de Material Auténticos** — Cada bobina se renderiza con su acabado real: mate, brillante, seda (brillo nacarado), translúcido o glitter.
 - **Inspección Interactiva 360°** — Haz clic en cualquier bobina para abrirla en vista detallada, donde puedes girarla y examinarla desde cualquier ángulo con inercia suave.
 - **Detalles Completos de Bobina** — Temperaturas, costo por gramo, proveedor, ubicación física en el taller, fecha de compra y notas — todo de un vistazo.
 
-![Detalle de Bobina — Visor 3D, Estadísticas e Info del Proveedor](docs/screenshots/05-spool-detail.png)
+<table>
+<tr>
+<td width="50%">
+
+![Detalle — PETG Blanco Nube 100%](docs/screenshots/gallery/04-spool-detail.png)
+
+</td>
+<td width="50%">
+
+![Detalle — PLA Negro Carbón 87%](docs/screenshots/gallery/05-spool-detail-2.png)
+
+</td>
+</tr>
+</table>
 
 ---
 
@@ -38,9 +66,9 @@ Cada bobina de tu inventario se renderiza como un **modelo 3D realista** que ref
 
 Filoteca vigila la carpeta temporal de tu laminador en segundo plano. En el momento en que laminas un modelo, aparece automáticamente en la **Bandeja Companion** de Filoteca — sin exportar archivos, sin arrastrar y soltar, sin buscar carpetas.
 
-![Anycubic Slicer Next Gen — Modelo Laminado Listo](docs/screenshots/07-anycubic-slicer.png)
+![Bandeja Companion — Trabajos del Laminador Auto-Detectados](docs/screenshots/gallery/10-companion-tray.png)
 
-- **Detección Instantánea en Segundo Plano** — Lamina tu modelo y Filoteca lo captura silenciosamente. Una insignia sutil `Bandeja (1)` se enciende en la barra de título.
+- **Detección Instantánea en Segundo Plano** — Lamina tu modelo y Filoteca lo captura silenciosamente. Una insignia sutil `Bandeja (2)` se enciende en la barra de título.
 - **Emparejamiento Automático de Color** — Cada ranura de color se empareja automáticamente con la mejor bobina de tu inventario según similitud de color, marca y tipo de material.
 - **Soporte Multicolor Completo** — Compatibilidad total con configuraciones multimaterial (Anycubic ACE Pro / Serie Kobra) con seguimiento de peso por ranura.
 - **Tú Decides Qué Cuenta** — Nada se descuenta sin tu confirmación:
@@ -48,19 +76,18 @@ Filoteca vigila la carpeta temporal de tu laminador en segundo plano. En el mome
   - ⚠️ **"Falló / Parcial"** — Ajusta el porcentaje realmente utilizado.
   - ❌ **"No lo imprimí / Descartar"** — Sin descuento, trabajo archivado.
 
-![Bandeja Companion — Trabajos del Laminador Auto-Detectados](docs/screenshots/06-companion-tray.png)
-
 ---
 
 ## 📊 Estadísticas del Taller
 
 Un panel de analíticas integrado te ofrece una vista panorámica de todo tu inventario con gráficos interactivos e indicadores clave de rendimiento.
 
-![Panel de Estadísticas — Materiales, Marcas y KPIs](docs/screenshots/08-statistics.png)
+![Panel de Estadísticas — Materiales, Marcas y KPIs](docs/screenshots/gallery/07-statistics.png)
 
 - **Distribución por Material** — Visualiza cómo se compone tu inventario por tipo de filamento (PLA, PETG, ABS, TPU, etc.) con gráficos de dona interactivos.
 - **Panorama de Marcas** — Controla qué marcas dominan tu estantería y compara el valor del inventario entre proveedores.
 - **KPIs del Taller** — Total de bobinas, peso total en stock, valor total del inventario (en tu moneda local) y costo promedio por gramo.
+- **Treemap Visual** — Visualiza cada bobina jerárquicamente organizada por material → marca → color.
 
 ---
 
@@ -68,12 +95,22 @@ Un panel de analíticas integrado te ofrece una vista panorámica de todo tu inv
 
 No te quedes sin filamento a mitad de una impresión. Filoteca monitorea tus patrones de consumo y te avisa antes de que sea tarde.
 
-![Previsión Inteligente de Reabastecimiento](docs/screenshots/04-replenishment.png)
+![Previsión Inteligente de Reabastecimiento](docs/screenshots/gallery/08-replenishment.png)
 
 - **Previsión de Consumo** — Rastrea tu uso de los últimos 30 días por bobina y estima cuándo se agotará.
 - **Alertas Semáforo** — 🔴 Crítico (pide ya), 🟡 Próximo (planifica), 🟢 Listo (todo bien).
 - **Detección de Bobinas de Respaldo** — ¿Ya tienes un rollo sellado de repuesto? Filoteca lo detecta y ajusta la urgencia.
 - **Lista de Compras en Un Clic** — Añade bobinas con bajo stock directamente a tu lista de suministros.
+
+![Lista de Compras con Sugerencias Automáticas](docs/screenshots/gallery/09-shopping.png)
+
+---
+
+## 🛒 Añadir y Editar Bobinas
+
+Registra nuevos rollos de filamento rápidamente con chips de marca, paleta de colores hexadecimal, presets de material y una vista previa 3D en vivo que se actualiza mientras escribes.
+
+![Modal para Añadir Nueva Bobina](docs/screenshots/gallery/06-add-roll.png)
 
 ---
 
@@ -99,6 +136,14 @@ No te quedes sin filamento a mitad de una impresión. Filoteca monitorea tus pat
     </td>
   </tr>
 </table>
+
+---
+
+## ⚙️ Ajustes Completamente Personalizables
+
+Configura tema, idioma, umbrales de alerta, tiempos de reabastecimiento y comportamiento del companion — todo desde un panel de ajustes limpio.
+
+![Panel de Ajustes](docs/screenshots/gallery/02-settings.png)
 
 ---
 
