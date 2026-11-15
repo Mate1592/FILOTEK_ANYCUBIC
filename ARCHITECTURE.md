@@ -1,6 +1,6 @@
-# Contexto del Proyecto: Filoteca · Taller 3D
-> Documento de traspaso y briefing técnico para Claude (u otro agente de IA).
-> Última actualización: 2026-10-05.
+# Arquitectura del Sistema: Filoteca · Taller 3D
+> Documentación técnica del sistema y decisiones de arquitectura interna.
+> Versión: v1.1.0 · Actualizado: Noviembre 2026.
 
 ---
 
@@ -17,7 +17,7 @@
 - **Frontend:** React 19, TypeScript, Vite, Tailwind CSS v4, Motion (`motion/react` / Framer Motion), Lucide React.
 - **Motor 3D:** Three.js con arquitectura de **1 solo Canvas WebGL compartido** (`SpoolViewerManager.ts`) usando *scissor testing* para renderizar cientos de bobinas a 60 fps sin agotar contextos WebGL. Canvas interactivo independiente con inercia para modales de detalle (`InteractiveSpool3D.tsx`).
 - **Base de Datos:** SQLite local vía `sql.js` (WebAssembly, sin compiladores C++ nativos requeridos).
-- **Laminador / Companion:** Parser automático de metadatos de Anycubic Slicer Next (`.gcode.metadata`) con reconocimiento de placas, cálculo volumétrico de respaldo, descarte de dummies `.3mf` y algoritmo de coincidencia de color CIELAB $\Delta E$.
+- **Laminador / Companion:** Parser automático de metadatos de Anycubic Slicer Next y OrcaSlicer (`.gcode`, `.gcode.metadata`) con reconocimiento de placas, cálculo volumétrico de respaldo, descarte de dummies `.3mf` y algoritmo de coincidencia de color CIELAB $\Delta E$.
 
 ---
 

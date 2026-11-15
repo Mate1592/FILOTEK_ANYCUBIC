@@ -1,4 +1,4 @@
-# Instrucciones para Jules (Google AI Coding Agent)
+# Guía de Automatización y Flujo de Releases CI/CD
 
 Este proyecto es **Filoteca · Taller 3D**, una aplicación de escritorio para Windows empaquetada con Electron, React 19, Vite, Tailwind CSS v4 y SQLite local (`sql.js`).
 
@@ -25,7 +25,7 @@ npm run build
 
 La generación de binarios Windows (`.exe` portable e instalador) está automatizada en **GitHub Actions** a través del flujo [`.github/workflows/release.yml`](../.github/workflows/release.yml).
 
-### Procedimiento para que Jules cree un nuevo Release:
+### Procedimiento para crear un nuevo Release:
 1. **Actualizar versión:** Modificar el campo `"version"` en `package.json` (por ejemplo a `1.0.1`).
 2. **Crear Pull Request o Commit:** Describir en el mensaje del commit o PR los cambios realizados (Changelog).
 3. **Crear Tag de Git:** Crear el tag correspondiente con prefijo `v` (por ejemplo `v1.0.1`) y enviarlo al repositorio (`git tag v1.0.1 && git push origin v1.0.1`).
