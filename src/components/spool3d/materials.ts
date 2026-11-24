@@ -1,6 +1,5 @@
 import * as THREE from 'three';
 import type { Finish } from '../../shared/types';
-import type { StockLevel } from '../../lib/roll';
 import { getWindingNormalTexture, getGlitterTexture } from './textures';
 import { getContactShadowTexture } from './geometries';
 
@@ -8,46 +7,76 @@ let plasticMaterial: THREE.MeshPhysicalMaterial | null = null;
 let coreMaterial: THREE.MeshStandardMaterial | null = null;
 let shadowMaterial: THREE.MeshBasicMaterial | null = null;
 
-export function getPlasticMaterial(): THREE.MeshPhysicalMaterial {
-  if (plasticMaterial) return plasticMaterial;
-  plasticMaterial = new THREE.MeshPhysicalMaterial({
+export function createPlasticMaterial(): THREE.MeshPhysicalMaterial {
+  return new THREE.MeshPhysicalMaterial({
     color: new THREE.Color('#5c6676'), // Titanio técnico satinado para estructura delgada de panal
     roughness: 0.30,
     metalness: 0.26,
     clearcoat: 0.85,
     clearcoatRoughness: 0.10,
   });
+}
+
+export function getPlasticMaterial(): THREE.MeshPhysicalMaterial {
+  if (plasticMaterial) return plasticMaterial;
+  plasticMaterial = createPlasticMaterial();
   return plasticMaterial;
 }
 
-export function getCoreMaterial(): THREE.MeshStandardMaterial {
-  if (coreMaterial) return coreMaterial;
-  coreMaterial = new THREE.MeshStandardMaterial({
+export function createCoreMaterial(): THREE.MeshStandardMaterial {
+  return new THREE.MeshStandardMaterial({
     color: new THREE.Color('#c68b50'), // Cartón kraft marrón cálido visible por el centro
     roughness: 0.78,
     metalness: 0.02,
   });
+}
+
+export function getCoreMaterial(): THREE.MeshStandardMaterial {
+  if (coreMaterial) return coreMaterial;
+  coreMaterial = createCoreMaterial();
   return coreMaterial;
 }
 
-export function getShadowMaterial(): THREE.MeshBasicMaterial {
-  if (shadowMaterial) return shadowMaterial;
-  shadowMaterial = new THREE.MeshBasicMaterial({
-    map: getContactShadowTexture(),
+export function createShadowMaterial(shadowTexture: THREE.Texture = getContactShadowTexture()): THREE.MeshBasicMaterial {
+  return new THREE.MeshBasicMaterial({
+    map: shadowTexture,
     transparent: true,
     opacity: 0.38,
     depthWrite: false,
   });
+}
+
+export function getShadowMaterial(): THREE.MeshBasicMaterial {
+  if (shadowMaterial) return shadowMaterial;
+  shadowMaterial = createShadowMaterial();
   return shadowMaterial;
+}
+
+export function createRimGlowMaterial(level: 'low' | 'critical'): THREE.LineBasicMaterial {
+  return new THREE.LineBasicMaterial({
+    color: level === 'critical' ? 0xff4d36 : 0xf5a623,
+    linewidth: 2,
+    transparent: true,
+    opacity: level === 'critical' ? 0.85 : 0.65,
+  });
+}
+
+export function normalizeColorHex(colorHex: string): string {
+  const trimmed = colorHex.trim();
+  return /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(trimmed) ? trimmed.toLowerCase() : '#5c6068';
 }
 
 /**
  * Crea o actualiza el material PBR del filamento enrollado
  * según el color hexadecimal y el acabado (mate, brillante, seda, translúcido, glitter).
  */
-export function createFilamentMaterial(colorHex: string, finish: Finish): THREE.Material {
-  const color = new THREE.Color(colorHex);
-  const windingMap = getWindingNormalTexture();
+export function createFilamentMaterial(
+  colorHex: string,
+  finish: Finish,
+  windingMap: THREE.Texture = getWindingNormalTexture(),
+  glitterMap: THREE.Texture = getGlitterTexture(),
+): THREE.Material {
+  const color = new THREE.Color(normalizeColorHex(colorHex));
 
   const lum = color.r * 0.299 + color.g * 0.587 + color.b * 0.114;
   const isDark = lum < 0.18;
@@ -99,7 +128,7 @@ export function createFilamentMaterial(colorHex: string, finish: Finish): THREE.
         emissive,
         roughness: 0.32,
         metalness: 0.48,
-        normalMap: getGlitterTexture(),
+        normalMap: glitterMap,
         normalScale: new THREE.Vector2(0.85, 0.85),
       });
 

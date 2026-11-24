@@ -1,6 +1,6 @@
 # Arquitectura del Sistema: Filoteca · Taller 3D
 > Documentación técnica del sistema y decisiones de arquitectura interna.
-> Versión: v1.1.0 · Actualizado: Noviembre 2026.
+> Versión: v2.0.0 · Actualizado: Noviembre 2026.
 
 ---
 
@@ -48,7 +48,7 @@
 
 ### E. Empaquetado Rápido del Ejecutable Portable
 - **Archivo:** [`package.json`](./package.json).
-- Con `"compression": "store"` y `"npmRebuild": false`, el ejecutable portable (`release/Filoteca-Portable-1.0.0.exe`) se genera en apenas **40 segundos** (evitando los 4.5 minutos que tardaba la compresión LZMA ultra de 7-Zip).
+- Con `"compression": "normal"` y `"npmRebuild": false`, el ejecutable portable (`release/Filoteca-Portable-2.0.0.exe`) se genera comprimido con tamaño optimizado sin sacrificar velocidad de arranque.
 
 ### F. Optimización Extrema de GPU y CPU (Caída a ~0% en Reposo y 30 FPS en Animación)
 - **Archivos:** [`src/components/spool3d/SpoolViewerManager.ts`](./src/components/spool3d/SpoolViewerManager.ts), [`src/components/spool3d/InteractiveSpool3D.tsx`](./src/components/spool3d/InteractiveSpool3D.tsx), [`src/components/spool3d/geometries.ts`](./src/components/spool3d/geometries.ts), [`src/components/spool3d/materials.ts`](./src/components/spool3d/materials.ts), [`src/components/spool/SpoolCard.tsx`](./src/components/spool/SpoolCard.tsx).
@@ -93,7 +93,7 @@ FILAMENTO/
 │   └── store/
 │       └── useStore.ts      # Zustand con persistencia SQLite/localStorage
 ├── release/
-│   └── Filoteca-Portable-1.0.0.exe  # Ejecutable portable Windows generado
+│   └── Filoteca-Portable-2.0.0.exe  # Ejecutable portable Windows generado
 ├── scripts/
 │   ├── test-gcode-advanced.mjs      # Suite de 11 tests unitarios de G-code y color
 │   └── smoke.mjs                    # Smoke test con Playwright Electron y capturas
@@ -136,4 +136,4 @@ $env:Path = "$env:LOCALAPPDATA\devtools\node-v24.21.0-win-x64;" + $env:Path
 - **G-code Unit Tests:** 11/11 pruebas pasando (detección de color Anycubic Slicer, CIELAB $\Delta E$, fallback volumétrico, descarte de dummies `.3mf`).
 - **Lógica de stock suplido:** Verificada (`r1 hasBackup with r2: true`).
 - **Capturas visuales:** Almacenadas en `screenshots/` (`dropdown-menu-fixed.png`, `shelf-3d-nocturno.png`, `reabastecimiento.png`, etc.).
-- **Ejecutable:** Generado y verificado en `release/Filoteca-Portable-1.0.0.exe`.
+- **Ejecutable:** Generado y verificado en `release/Filoteca-Portable-2.0.0.exe`.

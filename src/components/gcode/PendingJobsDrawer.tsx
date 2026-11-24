@@ -24,7 +24,7 @@ export function PendingJobsDrawer() {
   if (unreviewedJobs.length === 0) return null;
 
   return (
-    <div className="p-3 mx-2 sm:mx-0 mb-4 rounded-2xl bg-surface-1/90 backdrop-blur-md border border-line shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 animate-fadeIn">
+    <div className="p-3 mx-2 sm:mx-0 mb-4 rounded-2xl bg-surface-1 border border-line-strong shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 animate-fadeIn">
       <div className="flex items-center gap-2.5">
         <div className="w-8 h-8 rounded-xl bg-accent/20 border border-accent/40 flex items-center justify-center text-accent-text shrink-0">
           <Inbox size={16} />
@@ -32,7 +32,7 @@ export function PendingJobsDrawer() {
         <div>
           <span className="font-display font-bold text-xs text-text flex items-center gap-1.5">
             <span>Bandeja de laminados</span>
-            <span className="px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold bg-accent text-accent-ink animate-pulse">
+            <span className="px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold bg-accent text-accent-ink">
               {unreviewedJobs.length} {unreviewedJobs.length === 1 ? 'pendiente' : 'pendientes'}
             </span>
           </span>

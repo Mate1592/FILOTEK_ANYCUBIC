@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   Moon,
   Sun,
@@ -49,6 +49,36 @@ export function SettingsView() {
   const [dbPath, setDbPath] = useState<string>('');
   const [detectedProcesses, setDetectedProcesses] = useState<string[]>([]);
   const [scanningProcesses, setScanningProcesses] = useState<boolean>(false);
+
+  const defaultSlicerExe = settings.companionSlicerExe || 'AnycubicSlicerNext.exe';
+  const [slicerExeDraft, setSlicerExeDraft] = useState<string>(defaultSlicerExe);
+  const slicerExeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const slicerExeLatestRef = useRef<string>(defaultSlicerExe);
+  const slicerExeDirtyRef = useRef<boolean>(false);
+
+  const flushSlicerExe = useCallback(() => {
+    if (slicerExeTimerRef.current) {
+      clearTimeout(slicerExeTimerRef.current);
+      slicerExeTimerRef.current = null;
+    }
+    if (!slicerExeDirtyRef.current) return;
+    slicerExeDirtyRef.current = false;
+    void useStore.getState().setSetting('companionSlicerExe', slicerExeLatestRef.current);
+  }, []);
+
+  useEffect(() => {
+    if (!slicerExeDirtyRef.current) {
+      const next = settings.companionSlicerExe || 'AnycubicSlicerNext.exe';
+      setSlicerExeDraft(next);
+      slicerExeLatestRef.current = next;
+    }
+  }, [settings.companionSlicerExe]);
+
+  useEffect(() => {
+    return () => {
+      flushSlicerExe();
+    };
+  }, [flushSlicerExe]);
 
   React.useEffect(() => {
     api.db.path().then(setDbPath);
@@ -394,7 +424,7 @@ export function SettingsView() {
         <div className="p-4 rounded-xl bg-surface-2/60 border border-line space-y-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-accent animate-pulse" />
+              <span className="w-2.5 h-2.5 rounded-full bg-accent" />
               <span className="text-xs font-bold text-text">Modo Acompañante (Slicer Companion)</span>
             </div>
             <label className="relative inline-flex items-center cursor-pointer">
@@ -418,8 +448,18 @@ export function SettingsView() {
               <div className="flex gap-2">
                 <input
                   type="text"
-                  value={settings.companionSlicerExe || 'AnycubicSlicerNext.exe'}
-                  onChange={(e) => setSetting('companionSlicerExe', e.target.value)}
+                  value={slicerExeDraft}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setSlicerExeDraft(val);
+                    slicerExeLatestRef.current = val;
+                    slicerExeDirtyRef.current = true;
+                    if (slicerExeTimerRef.current) clearTimeout(slicerExeTimerRef.current);
+                    slicerExeTimerRef.current = setTimeout(() => {
+                      flushSlicerExe();
+                    }, 350);
+                  }}
+                  onBlur={() => flushSlicerExe()}
                   placeholder="AnycubicSlicerNext.exe"
                   className="field flex-1 font-mono text-xs text-text bg-surface-1"
                 />
@@ -461,7 +501,16 @@ export function SettingsView() {
                     <button
                       key={proc}
                       type="button"
-                      onClick={() => setSetting('companionSlicerExe', proc)}
+                      onClick={() => {
+                        if (slicerExeTimerRef.current) {
+                          clearTimeout(slicerExeTimerRef.current);
+                          slicerExeTimerRef.current = null;
+                        }
+                        slicerExeDirtyRef.current = false;
+                        slicerExeLatestRef.current = proc;
+                        setSlicerExeDraft(proc);
+                        void setSetting('companionSlicerExe', proc);
+                      }}
                       className="px-2 py-0.5 rounded-lg bg-accent/15 text-accent-text border border-accent/30 text-[11px] font-mono hover:bg-accent/25 transition-all cursor-pointer"
                     >
                       {proc}
@@ -643,6 +692,66 @@ export function SettingsView() {
         </div>
       </div>
 
+      {/* System Tray */}
+      <div className="p-5 rounded-2xl bg-surface-1 border border-line shadow-xs space-y-4">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 text-text font-bold text-sm">
+            <Monitor size={16} className="text-accent-text" />
+            <span>{t('settingsTrayTitle')}</span>
+          </div>
+          {!isDesktop && (
+            <span className="text-[11px] text-faint font-mono">{t('settingsTrayBrowserNote')}</span>
+          )}
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <label className="p-3.5 rounded-xl bg-surface-2/60 border border-line flex items-start justify-between gap-3 cursor-pointer">
+            <div>
+              <span className="text-xs font-semibold text-text block">{t('settingsTrayEnabledLabel')}</span>
+              <span className="text-[11px] text-faint block mt-0.5">{t('settingsTrayEnabledDesc')}</span>
+            </div>
+            <input
+              type="checkbox"
+              data-testid="settings-tray-enabled"
+              checked={!!settings.trayEnabled}
+              onChange={(e) => {
+                const enabled = e.target.checked;
+                const nextCloseToTray = enabled ? !!settings.closeToTray : false;
+                void setSetting('trayEnabled', enabled);
+                if (!enabled && settings.closeToTray) {
+                  void setSetting('closeToTray', false);
+                }
+                api.win.setTray(enabled, nextCloseToTray);
+              }}
+              className="mt-0.5 rounded border-line text-accent focus:ring-accent cursor-pointer"
+            />
+          </label>
+
+          <label
+            className={`p-3.5 rounded-xl bg-surface-2/60 border border-line flex items-start justify-between gap-3 ${
+              settings.trayEnabled ? 'cursor-pointer' : 'opacity-60 cursor-not-allowed'
+            }`}
+          >
+            <div>
+              <span className="text-xs font-semibold text-text block">{t('settingsCloseToTrayLabel')}</span>
+              <span className="text-[11px] text-faint block mt-0.5">{t('settingsCloseToTrayDesc')}</span>
+            </div>
+            <input
+              type="checkbox"
+              data-testid="settings-close-to-tray"
+              disabled={!settings.trayEnabled}
+              checked={!!settings.trayEnabled && !!settings.closeToTray}
+              onChange={(e) => {
+                const closeToTray = e.target.checked;
+                void setSetting('closeToTray', closeToTray);
+                api.win.setTray(!!settings.trayEnabled, closeToTray);
+              }}
+              className="mt-0.5 rounded border-line text-accent focus:ring-accent cursor-pointer disabled:cursor-not-allowed"
+            />
+          </label>
+        </div>
+      </div>
+
       {/* Currency */}
       <div className="p-5 rounded-2xl bg-surface-1 border border-line shadow-xs space-y-3">
         <div className="flex items-center gap-2 text-text font-bold text-sm">
@@ -651,22 +760,23 @@ export function SettingsView() {
         </div>
 
         <p className="text-xs text-muted">
-          Por defecto se usa formato de pesos colombianos (COP), sin decimales para precios completos ($ 89.900) y un decimal para costo por gramo ($ 89,9/g).
+          {t('settingsCurrencyDesc')}
         </p>
 
         <div className="flex flex-wrap items-center gap-2">
-          {['COP', 'USD', 'EUR', 'MXN', 'ARS', '$'].map((curr) => (
+          {['COP', 'USD', 'EUR', 'BRL', 'MXN', 'ARS', '$'].map((curr) => (
             <button
               key={curr}
               type="button"
+              data-testid={`settings-currency-${curr}`}
               onClick={() => setSetting('currency', curr)}
-              className={`px-3 py-1.5 rounded-xl text-xs font-mono font-bold border transition-all ${
+              className={`px-3 py-1.5 rounded-xl text-xs font-mono font-bold border transition-all cursor-pointer ${
                 settings.currency === curr
                   ? 'bg-accent text-accent-ink border-accent-strong shadow-xs'
                   : 'bg-surface-2 text-muted border-line hover:text-text'
               }`}
             >
-              {curr === 'COP' ? 'COP (Colombia)' : curr}
+              {curr === 'COP' ? 'COP (Colombia)' : curr === 'BRL' ? t('settingsCurrencyBrl') : curr}
             </button>
           ))}
           <input
@@ -866,8 +976,11 @@ export function SettingsView() {
       </div>
 
       {/* Footer Info */}
-      <div className="pt-2 text-center text-xs text-faint font-mono">
-        Filoteca v1.1.0 · {t('developedBy')} · 100% Offline
+      <div
+        data-testid="settings-version-footer"
+        className="pt-2 text-center text-xs text-faint font-mono"
+      >
+        Filoteca v{typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '2.0.0'} · {t('developedBy')} · {t('settingsVersionOffline')}
       </div>
     </div>
   );

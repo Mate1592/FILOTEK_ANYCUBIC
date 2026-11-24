@@ -11,6 +11,7 @@ interface Spool3DProps {
   fraction: number;
   level: StockLevel;
   isHovered?: boolean;
+  animateLayout?: boolean;
   tiltX?: number; // radianes
   tiltY?: number; // radianes
   className?: string;
@@ -24,6 +25,7 @@ export const Spool3D = memo(function Spool3D({
   fraction,
   level,
   isHovered = false,
+  animateLayout = true,
   tiltX,
   tiltY,
   className = '',
@@ -35,7 +37,7 @@ export const Spool3D = memo(function Spool3D({
     const el = containerRef.current;
     if (!el || !spoolViewer.webglSupported) return;
 
-    spoolViewer.register(id, el, color, finish, fraction, level);
+    spoolViewer.register(id, el, color, finish, fraction, level, animateLayout);
 
     return () => {
       spoolViewer.unregister(id);
@@ -50,11 +52,12 @@ export const Spool3D = memo(function Spool3D({
       fraction,
       level,
       isHovered,
+      animateLayout,
     };
     if (tiltX !== undefined) payload.tiltX = tiltX;
     if (tiltY !== undefined) payload.tiltY = tiltY;
     spoolViewer.updateItem(id, payload);
-  }, [id, color, finish, fraction, level, isHovered, tiltX, tiltY]);
+  }, [id, color, finish, fraction, level, isHovered, animateLayout, tiltX, tiltY]);
 
   // Si WebGL no está disponible, mostrar el SVG anterior con total fidelidad
   if (!spoolViewer.webglSupported) {

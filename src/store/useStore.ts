@@ -18,7 +18,34 @@ import { buildSeed } from '../lib/seed';
 import { nowIso, pctRemaining, stockLevel, uid, fmtG, todayIso } from '../lib/roll';
 import { getSlotMappingKey, matchSlotToRoll } from '../lib/colorMath';
 
-export type View = 'shelf' | 'stats' | 'replenish' | 'shopping' | 'inbox' | 'settings';
+export type View = 'shelf' | 'stats' | 'replenish' | 'shopping' | 'inbox' | 'tools' | 'settings';
+export type ToolTab = 'quote' | 'batch' | 'math';
+
+export interface ToolDraftMaterial {
+  name: string;
+  rollId?: string;
+  grams: number;
+  costPerGram?: number;
+  spoolPrice?: number;
+  spoolWeightGrams?: number;
+  colorHex?: string;
+  materialName?: string;
+}
+
+export interface ToolDraft {
+  id: string;
+  tab: ToolTab;
+  source: 'inbox' | 'roll' | 'batch' | 'drop';
+  job?: GcodeJob;
+  jobs?: GcodeJob[];
+  batchJobs?: GcodeJob[];
+  filePaths?: string[];
+  rollId?: string;
+  jobName?: string;
+  printTimeSeconds?: number;
+  materials?: ToolDraftMaterial[];
+}
+
 export type SortKey = 'name' | 'remaining' | 'price' | 'date';
 export type LevelFilter = 'all' | 'low' | 'ok';
 
@@ -49,6 +76,8 @@ interface State {
   settings: Settings;
 
   view: View;
+  toolsTab: ToolTab;
+  toolDraft: ToolDraft | null;
   selectedId: string | null;
   editor: { mode: 'new' } | { mode: 'edit'; id: string } | { mode: 'clone'; id: string } | null;
   query: string;
@@ -59,6 +88,10 @@ interface State {
 
   // ui
   setView(v: View): void;
+  setToolsTab(tab: ToolTab): void;
+  setToolDraft(draft: ToolDraft | null): void;
+  openToolsWithDraft(draft: Omit<ToolDraft, 'id'>): void;
+  clearToolDraft(): void;
   select(id: string | null): void;
   openEditor(e: State['editor']): void;
   setQuery(q: string): void;
@@ -90,6 +123,7 @@ interface State {
   deleteOrder(id: string): Promise<void>;
   markOrderReceived(order: ProductOrder): Promise<void>;
   upsertGcodeJob(job: GcodeJob): Promise<void>;
+  upsertGcodeJobs(jobs: GcodeJob[]): Promise<void>;
   deleteGcodeJob(id: string): Promise<void>;
   applyGcodeJob(jobId: string, printedPercent?: number): Promise<void>;
   markJobPrinted(jobId: string, filamentRollOverrides?: Record<number, string>): Promise<void>;
@@ -145,6 +179,8 @@ export const useStore = create<State>((set, get) => ({
   settings: DEFAULT_SETTINGS,
 
   view: 'shelf',
+  toolsTab: 'quote',
+  toolDraft: null,
   selectedId: null,
   editor: null,
   query: '',
@@ -154,6 +190,16 @@ export const useStore = create<State>((set, get) => ({
   searchFocusTick: 0,
 
   setView: (view) => set({ view, selectedId: null }),
+  setToolsTab: (toolsTab) => set({ toolsTab }),
+  setToolDraft: (toolDraft) => set({ toolDraft }),
+  openToolsWithDraft: (draft) =>
+    set({
+      view: 'tools',
+      selectedId: null,
+      toolsTab: draft.tab,
+      toolDraft: { ...draft, id: uid() },
+    }),
+  clearToolDraft: () => set({ toolDraft: null }),
   select: (selectedId) => set({ selectedId }),
   openEditor: (editor) => set({ editor }),
   setQuery: (query) => set({ query }),
@@ -504,6 +550,25 @@ export const useStore = create<State>((set, get) => ({
     const prev = get().gcodeJobs;
     set({ gcodeJobs: [...prev.filter((j) => j.id !== job.id), job] });
     await persist(api.db.upsertGcodeJob(job), () => set({ gcodeJobs: prev }), get().toast, 'guardar el trabajo');
+  },
+
+  async upsertGcodeJobs(jobs) {
+    if (!jobs.length) return;
+    const prev = get().gcodeJobs;
+    const byId = new Map<string, GcodeJob>();
+    for (const j of prev) byId.set(j.id, j);
+    for (const j of jobs) byId.set(j.id, j);
+    set({ gcodeJobs: Array.from(byId.values()) });
+
+    for (const job of jobs) {
+      const ok = await persist(
+        api.db.upsertGcodeJob(job),
+        () => set({ gcodeJobs: prev }),
+        get().toast,
+        'guardar los trabajos',
+      );
+      if (!ok) return;
+    }
   },
 
   async deleteGcodeJob(id) {

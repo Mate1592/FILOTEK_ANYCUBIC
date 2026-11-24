@@ -52,7 +52,7 @@ export function OnboardingModal({ onClose }: OnboardingModalProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md select-none">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 select-none">
       <motion.div
         initial={{ opacity: 0, scale: 0.94, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -63,7 +63,7 @@ export function OnboardingModal({ onClose }: OnboardingModalProps) {
         {/* Header con paso y botón omitir */}
         <div className="flex items-center justify-between px-7 pt-6 pb-2 border-b border-line/40">
           <div className="flex items-center gap-2">
-            <div className="w-2.5 h-2.5 rounded-full bg-accent animate-pulse" />
+            <div className="w-2.5 h-2.5 rounded-full bg-accent" />
             <span className="text-xs font-mono font-medium text-muted tracking-wide uppercase">
               Filoteca · {step} / {TOTAL_STEPS}
             </span>

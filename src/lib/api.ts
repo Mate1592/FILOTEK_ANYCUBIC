@@ -104,6 +104,12 @@ function browserApi(): FilotecaApi {
           };
           i.click();
         }),
+      openMultiple: async () => [],
+      saveTextFile: async (opts) => {
+        download(opts.content, opts.defaultName);
+        return { ok: true, path: opts.defaultName };
+      },
+      getPathForFile: (file: File) => (file as unknown as { path?: string })?.path || '',
       selectFolder: () => Promise.resolve({ ok: true, data: null }),
       parseGcodePath: () => Promise.resolve({ ok: true, data: null }),
     },

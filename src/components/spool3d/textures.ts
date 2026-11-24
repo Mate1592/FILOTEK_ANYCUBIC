@@ -1,11 +1,13 @@
 import * as THREE from 'three';
 
+let cachedWindingCanvas: HTMLCanvasElement | null = null;
+let cachedGlitterCanvas: HTMLCanvasElement | null = null;
 let windingNormalMap: THREE.CanvasTexture | null = null;
 let glitterNormalMap: THREE.CanvasTexture | null = null;
 
-/** Genera un mapa de relieve procedural con líneas de bobinado finas y paralelas */
-export function getWindingNormalTexture(): THREE.CanvasTexture {
-  if (windingNormalMap) return windingNormalMap;
+/** Genera y cachea globalmente el canvas 2D del mapa de relieve de bobinado */
+export function getWindingNormalCanvas(): HTMLCanvasElement {
+  if (cachedWindingCanvas) return cachedWindingCanvas;
 
   const width = 512;
   const height = 512;
@@ -32,16 +34,13 @@ export function getWindingNormalTexture(): THREE.CanvasTexture {
     ctx.fillRect(0, y, width, strandHeight);
   }
 
-  windingNormalMap = new THREE.CanvasTexture(canvas);
-  windingNormalMap.wrapS = THREE.RepeatWrapping;
-  windingNormalMap.wrapT = THREE.RepeatWrapping;
-  windingNormalMap.repeat.set(1, 4);
-  return windingNormalMap;
+  cachedWindingCanvas = canvas;
+  return canvas;
 }
 
-/** Mapa de ruido con partículas brillantes para acabado glitter */
-export function getGlitterTexture(): THREE.CanvasTexture {
-  if (glitterNormalMap) return glitterNormalMap;
+/** Genera y cachea globalmente el canvas 2D de ruido glitter */
+export function getGlitterCanvas(): HTMLCanvasElement {
+  if (cachedGlitterCanvas) return cachedGlitterCanvas;
 
   const size = 256;
   const canvas = document.createElement('canvas');
@@ -67,10 +66,38 @@ export function getGlitterTexture(): THREE.CanvasTexture {
   }
 
   ctx.putImageData(imgData, 0, 0);
+  cachedGlitterCanvas = canvas;
+  return canvas;
+}
 
-  glitterNormalMap = new THREE.CanvasTexture(canvas);
-  glitterNormalMap.wrapS = THREE.RepeatWrapping;
-  glitterNormalMap.wrapT = THREE.RepeatWrapping;
-  glitterNormalMap.repeat.set(3, 3);
+/** Crea una instancia aislada de CanvasTexture para el mapa de bobinado */
+export function createWindingNormalTexture(): THREE.CanvasTexture {
+  const tex = new THREE.CanvasTexture(getWindingNormalCanvas());
+  tex.wrapS = THREE.RepeatWrapping;
+  tex.wrapT = THREE.RepeatWrapping;
+  tex.repeat.set(1, 4);
+  return tex;
+}
+
+/** Crea una instancia aislada de CanvasTexture para acabado glitter */
+export function createGlitterTexture(): THREE.CanvasTexture {
+  const tex = new THREE.CanvasTexture(getGlitterCanvas());
+  tex.wrapS = THREE.RepeatWrapping;
+  tex.wrapT = THREE.RepeatWrapping;
+  tex.repeat.set(3, 3);
+  return tex;
+}
+
+/** Genera un mapa de relieve procedural con líneas de bobinado finas y paralelas */
+export function getWindingNormalTexture(): THREE.CanvasTexture {
+  if (windingNormalMap) return windingNormalMap;
+  windingNormalMap = createWindingNormalTexture();
+  return windingNormalMap;
+}
+
+/** Mapa de ruido con partículas brillantes para acabado glitter */
+export function getGlitterTexture(): THREE.CanvasTexture {
+  if (glitterNormalMap) return glitterNormalMap;
+  glitterNormalMap = createGlitterTexture();
   return glitterNormalMap;
 }

@@ -22,9 +22,11 @@ import {
   Store,
   ExternalLink,
   Truck,
+  Calculator,
 } from 'lucide-react';
 import type { Roll, RollStatus } from '../../shared/types';
 import { useStore } from '../../store/useStore';
+import { useI18n } from '../../lib/i18n';
 import {
   FINISH_LABEL,
   STATUS_LABEL,
@@ -50,6 +52,7 @@ interface RollDetailModalProps {
 }
 
 export function RollDetailModal({ roll, onClose, onOpenQuickUse }: RollDetailModalProps) {
+  const { t } = useI18n();
   const settings = useStore((s) => s.settings);
   const allUsage = useStore((s) => s.usage);
   const usage = React.useMemo(() => allUsage.filter((u) => u.rollId === roll?.id), [allUsage, roll?.id]);
@@ -59,6 +62,7 @@ export function RollDetailModal({ roll, onClose, onOpenQuickUse }: RollDetailMod
   const deleteRoll = useStore((s) => s.deleteRoll);
   const setStatus = useStore((s) => s.setStatus);
   const moveRoll = useStore((s) => s.moveRoll);
+  const openToolsWithDraft = useStore((s) => s.openToolsWithDraft);
 
   const [isEditingLoc, setIsEditingLoc] = useState(false);
   const [newLoc, setNewLoc] = useState('');
@@ -213,6 +217,23 @@ export function RollDetailModal({ roll, onClose, onOpenQuickUse }: RollDetailMod
                 >
                   <Minus size={16} />
                   <span>Registrar impresión (descontar gramos)</span>
+                </button>
+
+                <button
+                  type="button"
+                  data-testid="roll-detail-quote-btn"
+                  onClick={() => {
+                    onClose();
+                    openToolsWithDraft({
+                      tab: 'quote',
+                      source: 'roll',
+                      rollId: roll.id,
+                    });
+                  }}
+                  className="w-full py-2 px-4 rounded-xl bg-surface-1 hover:bg-surface-2 border border-line text-text font-medium text-xs transition-all flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <Calculator size={14} className="text-accent-text" />
+                  <span>{t('rollDetailCalcCostBtn')}</span>
                 </button>
               </div>
             </div>

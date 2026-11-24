@@ -10,6 +10,7 @@ import {
   Sparkles,
   Truck,
   Inbox,
+  Wrench,
 } from 'lucide-react';
 import { useStore, useUnreviewedGcodeCount, type View } from '../../store/useStore';
 import { isDesktop } from '../../lib/api';
@@ -126,10 +127,24 @@ export function TitleBar() {
           <Inbox size={13} />
           <span>{t('tabInbox')}</span>
           {unreviewedCount > 0 && (
-            <span className="px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold bg-accent text-accent-ink shadow-xs animate-pulse">
+            <span className="px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold bg-accent text-accent-ink shadow-xs">
               {unreviewedCount}
             </span>
           )}
+        </button>
+
+        <button
+          type="button"
+          data-testid="tab-tools"
+          onClick={() => setView('tools')}
+          className={`px-3 py-1 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all cursor-pointer ${
+            view === 'tools'
+              ? 'bg-elevated text-text shadow-xs font-semibold'
+              : 'text-muted hover:text-text'
+          }`}
+        >
+          <Wrench size={13} />
+          <span>{t('tabTools')}</span>
         </button>
 
         <button

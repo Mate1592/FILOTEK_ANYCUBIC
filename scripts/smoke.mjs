@@ -33,6 +33,26 @@ async function runSmokeTest() {
       throw new Error(`Título inesperado: ${title}`);
     }
 
+    // Si aparece el modal de bienvenida (onboarding), completarlo
+    await page.waitForTimeout(600);
+    const onboardingBtn = await page.$('button:has-text("Siguiente")');
+    if (onboardingBtn) {
+      console.log('Completando modal de bienvenida (onboarding)...');
+      for (let s = 1; s <= 4; s++) {
+        const nextBtn = await page.waitForSelector('button:has-text("Siguiente")', { timeout: 3000 }).catch(() => null);
+        if (nextBtn) {
+          await nextBtn.click();
+          await page.waitForTimeout(200);
+        }
+      }
+      const finishBtn = await page.waitForSelector('button:has-text("¡Comenzar en el taller!")', { timeout: 3000 }).catch(() => null);
+      if (finishBtn) {
+        await finishBtn.click();
+        await page.waitForTimeout(400);
+      }
+      console.log('Modal de bienvenida completado con éxito.');
+    }
+
     // Esperar a que la estantería cargue las tarjetas
     console.log('Esperando carga de las bobinas de taller...');
     await page.waitForSelector('[role="button"][aria-label*="Bobina"]', { timeout: 10000 });
@@ -114,6 +134,15 @@ async function runSmokeTest() {
     await page.waitForTimeout(600);
     await page.screenshot({ path: 'screenshots/bandeja-laminados.png' });
     console.log('Vista de Bandeja de laminados verificada y captura guardada.');
+
+    // Navegar a la pestaña de Herramientas
+    console.log('Navegando a la vista de Herramientas de Taller 3D...');
+    await page.click('[data-testid="tab-tools"]');
+    await page.waitForSelector('text=Herramientas del Taller 3D', { timeout: 5000 });
+    await page.waitForSelector('text=Cotizador 3D', { timeout: 5000 });
+    await page.waitForTimeout(600);
+    await page.screenshot({ path: 'screenshots/herramientas-taller.png' });
+    console.log('Vista de Herramientas (Cotizador 3D, Lote, Matemática y Tara) verificada.');
 
     // Navegar a la pestaña de Ajustes
     console.log('Navegando a la vista de Ajustes...');

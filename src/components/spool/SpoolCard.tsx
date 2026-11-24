@@ -5,10 +5,7 @@ import {
   AlertTriangle,
   Flame,
   CheckCircle2,
-  Clock,
-  Sparkles,
   MapPin,
-  Plus,
   Minus,
   MoreVertical,
   Edit2,
@@ -18,8 +15,7 @@ import {
 } from 'lucide-react';
 import type { Roll } from '../../shared/types';
 import { useStore } from '../../store/useStore';
-import { FINISH_LABEL, fmtG, fmtMoney, pctRemaining, stockLevel, LEVEL_LABEL, hasBackupStock, type StockLevel } from '../../lib/roll';
-import { Spool } from './Spool';
+import { FINISH_LABEL, fmtG, fmtMoney, pctRemaining, stockLevel, type StockLevel } from '../../lib/roll';
 import { Spool3D } from '../spool3d/Spool3D';
 import { spoolViewer } from '../spool3d/SpoolViewerManager';
 import { GaugeRing } from './GaugeRing';
@@ -30,18 +26,142 @@ interface SpoolCardProps {
   roll: Roll;
   onQuickUse: (roll: Roll) => void;
   index: number;
+  isBackedUp?: boolean;
+  lightweight?: boolean;
 }
 
-export const SpoolCard = memo(function SpoolCard({ roll, onQuickUse, index }: SpoolCardProps) {
+interface CardShellProps {
+  rollId: string;
+  index: number;
+  isHovered: boolean;
+  ariaLabel: string;
+  className: string;
+  onMouseEnter: () => void;
+  onMouseLeave: () => void;
+  onClick: (e: React.MouseEvent) => void;
+  onKeyDown: (e: React.KeyboardEvent) => void;
+  children: React.ReactNode;
+}
+
+function LightweightCardShell({
+  ariaLabel,
+  className,
+  onMouseEnter,
+  onMouseLeave,
+  onClick,
+  onKeyDown,
+  children,
+}: CardShellProps) {
+  return (
+    <div
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
+      onClick={onClick}
+      onKeyDown={onKeyDown}
+      tabIndex={0}
+      role="button"
+      aria-label={ariaLabel}
+      className={className}
+    >
+      {children}
+    </div>
+  );
+}
+
+function MotionCardShell({
+  rollId,
+  index,
+  ariaLabel,
+  className,
+  onMouseEnter,
+  onMouseLeave,
+  onClick,
+  onKeyDown,
+  children,
+}: CardShellProps) {
   const reduce = useReducedMotion();
+  const mouseX = useMotionValue(0);
+  const mouseY = useMotionValue(0);
+  const rotateX = useSpring(useTransform(mouseY, [-0.5, 0.5], [7, -7]), { stiffness: 300, damping: 25 });
+  const rotateY = useSpring(useTransform(mouseX, [-0.5, 0.5], [-7, 7]), { stiffness: 300, damping: 25 });
+  const lastMoveRef = useRef(0);
+
+  const handleMouseMove = useCallback(
+    (e: React.MouseEvent<HTMLDivElement>) => {
+      if (reduce) return;
+      const now = performance.now();
+      // Throttle mousemove a ~30 fps (~33ms) para no saturar CPU con ratones de alto polling (500Hz/1000Hz)
+      if (now - lastMoveRef.current < 33) return;
+      lastMoveRef.current = now;
+
+      const rect = e.currentTarget.getBoundingClientRect();
+      const x = (e.clientX - rect.left) / rect.width - 0.5;
+      const y = (e.clientY - rect.top) / rect.height - 0.5;
+      mouseX.set(x);
+      mouseY.set(y);
+      spoolViewer.updateItem(rollId, {
+        tiltX: y * -0.15,
+        tiltY: x * 0.18,
+      });
+    },
+    [mouseX, mouseY, reduce, rollId],
+  );
+
+  const handleLeave = () => {
+    mouseX.set(0);
+    mouseY.set(0);
+    onMouseLeave();
+  };
+
+  return (
+    <motion.div
+      layout="position"
+      layoutId={`roll-card-${rollId}`}
+      initial={reduce ? { opacity: 1 } : { opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, scale: 0.95 }}
+      transition={{ duration: 0.35, delay: Math.min(index * 0.03, 0.4) }}
+      style={
+        reduce
+          ? {}
+          : {
+              perspective: 1000,
+              rotateX,
+              rotateY,
+              transformStyle: 'preserve-3d',
+            }
+      }
+      onMouseMove={handleMouseMove}
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={handleLeave}
+      onClick={onClick}
+      onKeyDown={onKeyDown}
+      tabIndex={0}
+      role="button"
+      aria-label={ariaLabel}
+      className={className}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
+export const SpoolCard = memo(function SpoolCard({
+  roll,
+  onQuickUse,
+  index,
+  isBackedUp = false,
+  lightweight = false,
+}: SpoolCardProps) {
   const select = useStore((s) => s.select);
   const openEditor = useStore((s) => s.openEditor);
   const duplicate = useStore((s) => s.duplicate);
   const deleteRoll = useStore((s) => s.deleteRoll);
   const markEmpty = useStore((s) => s.markEmpty);
   const logUse = useStore((s) => s.logUse);
-  const settings = useStore((s) => s.settings);
-  const rolls = useStore((s) => s.rolls);
+  const lowThreshold = useStore((s) => s.settings.lowThreshold);
+  const criticalThreshold = useStore((s) => s.settings.criticalThreshold);
+  const currency = useStore((s) => s.settings.currency);
 
   const [isHovered, setIsHovered] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
@@ -73,153 +193,120 @@ export const SpoolCard = memo(function SpoolCard({ roll, onQuickUse, index }: Sp
     };
   }, [showMenu]);
 
-  // 3D tilt tracking
-  const mouseX = useMotionValue(0);
-  const mouseY = useMotionValue(0);
-  const rotateX = useSpring(useTransform(mouseY, [-0.5, 0.5], [7, -7]), { stiffness: 300, damping: 25 });
-  const rotateY = useSpring(useTransform(mouseX, [-0.5, 0.5], [-7, 7]), { stiffness: 300, damping: 25 });
-  const lastMoveRef = useRef(0);
-
-  const handleMouseMove = useCallback(
-    (e: React.MouseEvent<HTMLDivElement>) => {
-      if (reduce) return;
-      const now = performance.now();
-      // Throttle mousemove a ~30 fps (~33ms) para no saturar CPU con ratones de alto polling (500Hz/1000Hz)
-      if (now - lastMoveRef.current < 33) return;
-      lastMoveRef.current = now;
-
-      const rect = e.currentTarget.getBoundingClientRect();
-      const x = (e.clientX - rect.left) / rect.width - 0.5;
-      const y = (e.clientY - rect.top) / rect.height - 0.5;
-      mouseX.set(x);
-      mouseY.set(y);
-      spoolViewer.updateItem(roll.id, {
-        tiltX: y * -0.15,
-        tiltY: x * 0.18,
-      });
-    },
-    [mouseX, mouseY, reduce, roll.id],
-  );
-
-  const handleMouseEnter = () => {
+  const handleMouseEnter = useCallback(() => {
     setIsHovered(true);
-  };
+  }, []);
 
-  const handleMouseLeave = () => {
+  const handleMouseLeave = useCallback(() => {
     setIsHovered(false);
-    mouseX.set(0);
-    mouseY.set(0);
     spoolViewer.updateItem(roll.id, {
       isHovered: false,
       tiltX: 0,
       tiltY: 0,
     });
-  };
+  }, [roll.id]);
 
   const pct = pctRemaining(roll);
-  const level = stockLevel(roll, settings);
+  const level = stockLevel(roll, { lowThreshold, criticalThreshold });
   const fraction = roll.initialWeight > 0 ? roll.remainingWeight / roll.initialWeight : 0;
 
-  const isBackedUp =
-    (level === 'low' || level === 'critical') && hasBackupStock(roll, rolls, settings);
-  const visualLevel: StockLevel = isBackedUp ? 'ok' : level;
+  const backedUp = (level === 'low' || level === 'critical') && Boolean(isBackedUp);
+  const visualLevel: StockLevel = backedUp ? 'ok' : level;
 
-  const handleCardClick = (e: React.MouseEvent) => {
-    // If clicking an action button, don't open details
-    if ((e.target as HTMLElement).closest('button')) return;
-    select(roll.id);
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault();
+  const handleCardClick = useCallback(
+    (e: React.MouseEvent) => {
+      // If clicking an action button, don't open details
+      if ((e.target as HTMLElement).closest('button')) return;
       select(roll.id);
-    }
-  };
+    },
+    [roll.id, select],
+  );
+
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        select(roll.id);
+      }
+    },
+    [roll.id, select],
+  );
+
+  const ariaLabel = `Bobina ${roll.colorName} de ${roll.brand} ${roll.material}, ${fmtG(roll.remainingWeight)} restantes`;
+  const shellClassName = `group relative rounded-2xl bg-surface-1 border border-line p-4 transition-all duration-300 cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-accent-text flex flex-col justify-between select-none ${
+    isHovered ? 'shadow-lg border-line-strong -translate-y-1' : 'shadow-sm cv-auto'
+  }`;
+
+  const Shell = lightweight ? LightweightCardShell : MotionCardShell;
 
   return (
-    <motion.div
-      layout="position"
-      layoutId={`roll-card-${roll.id}`}
-      initial={reduce ? { opacity: 1 } : { opacity: 0, y: 16 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, scale: 0.95 }}
-      transition={{ duration: 0.35, delay: Math.min(index * 0.03, 0.4) }}
-      style={
-        reduce
-          ? {}
-          : {
-              perspective: 1000,
-              rotateX,
-              rotateY,
-              transformStyle: 'preserve-3d',
-            }
-      }
-      onMouseMove={handleMouseMove}
+    <Shell
+      rollId={roll.id}
+      index={index}
+      isHovered={isHovered}
+      ariaLabel={ariaLabel}
+      className={shellClassName}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
       onClick={handleCardClick}
       onKeyDown={handleKeyDown}
-      tabIndex={0}
-      role="button"
-      aria-label={`Bobina ${roll.colorName} de ${roll.brand} ${roll.material}, ${fmtG(roll.remainingWeight)} restantes`}
-      className={`group relative rounded-2xl bg-surface-1 border border-line p-4 transition-all duration-300 cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-accent-text flex flex-col justify-between select-none ${
-        isHovered ? 'shadow-lg border-line-strong -translate-y-1' : 'shadow-sm'
-      }`}
     >
       {/* Top row: Brand + Material Tag + Stock Alert Badge */}
       <div className="flex items-start justify-between gap-2 z-10">
-        <div>
-          <div className="flex items-center gap-1.5 flex-wrap">
-            <span className="font-mono text-[11px] font-semibold text-muted uppercase tracking-wider">
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-1.5 flex-nowrap min-w-0">
+            <span
+              className="font-mono text-[11px] font-semibold text-muted uppercase tracking-wider truncate min-w-0"
+              title={roll.brand}
+            >
               {roll.brand}
             </span>
-            <span className="text-faint text-[10px]">•</span>
-            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[11px] font-medium bg-surface-2 text-text border border-line">
+            <span className="text-faint text-[10px] shrink-0">•</span>
+            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[11px] font-medium bg-surface-2 text-text border border-line shrink-0 whitespace-nowrap">
               {roll.material}
             </span>
-            <span className="text-[10px] text-faint font-mono">
+            <span className="text-[10px] text-faint font-mono shrink-0 whitespace-nowrap">
               {roll.diameter}mm
             </span>
           </div>
-          <h3 className="font-display font-bold text-base text-text mt-1 truncate max-w-[170px]" title={roll.colorName}>
+          <h3 className="font-display font-bold text-base text-text mt-1 truncate min-h-[1.5rem]" title={roll.colorName}>
             {roll.colorName}
           </h3>
         </div>
 
         {/* Stock status indicator */}
-        <div className="flex items-center gap-1">
-          {isBackedUp ? (
+        <div className="flex items-center gap-1 shrink-0">
+          {backedUp ? (
             <span
-              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-surface-2 text-muted border border-line"
+              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-surface-2 text-muted border border-line whitespace-nowrap"
               title={`Rollo por terminar (${roll.remainingWeight}g restantes), pero respaldado por otro carrete de ${roll.material} ${roll.colorName} en inventario.`}
             >
-              <CheckCircle2 size={11} className="text-ok" />
+              <CheckCircle2 size={11} className="text-ok shrink-0" />
               <span>{Math.round(pct)}% · Respaldado</span>
             </span>
           ) : level === 'critical' ? (
             <span
-              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-crit-soft text-crit-text border border-crit/20 animate-pulse"
+              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-crit-soft text-crit-text border border-crit/40 shadow-xs whitespace-nowrap"
               title="Stock crítico (<10%)"
             >
-              <Flame size={12} />
+              <Flame size={12} className="shrink-0" />
               <span>{Math.round(pct)}%</span>
             </span>
           ) : level === 'low' ? (
             <span
-              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-warn-soft text-warn-text border border-warn/20"
+              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-warn-soft text-warn-text border border-warn/20 whitespace-nowrap"
               title="Stock bajo (<20%)"
             >
-              <AlertTriangle size={12} />
+              <AlertTriangle size={12} className="shrink-0" />
               <span>{Math.round(pct)}%</span>
             </span>
           ) : level === 'empty' ? (
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-surface-3 text-faint">
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-surface-3 text-faint whitespace-nowrap">
               Agotado
             </span>
           ) : (
             <span
-              className="w-2.5 h-2.5 rounded-full border border-line shadow-xs"
+              className="w-2.5 h-2.5 rounded-full border border-line shadow-xs shrink-0"
               style={{ backgroundColor: roll.colorHex }}
               title={roll.colorHex}
             />
@@ -316,6 +403,7 @@ export const SpoolCard = memo(function SpoolCard({ roll, onQuickUse, index }: Sp
             fraction={fraction}
             level={visualLevel}
             isHovered={isHovered}
+            animateLayout={!lightweight}
             className="w-full h-full drop-shadow-md"
             title={`${roll.colorName} (${FINISH_LABEL[roll.finish]})`}
           />
@@ -323,7 +411,7 @@ export const SpoolCard = memo(function SpoolCard({ roll, onQuickUse, index }: Sp
 
         {/* Floating Radial Disk Gauge at bottom corner */}
         <div
-          className={`absolute bottom-0 right-1 flex items-center justify-center rounded-full bg-surface-1/90 backdrop-blur-md p-1 border border-line shadow-md transition-transform duration-300 ${
+          className={`absolute bottom-0 right-1 flex items-center justify-center rounded-full bg-surface-1 p-1 border border-line-strong shadow-md transition-transform duration-300 ${
             isHovered ? 'scale-110 shadow-lg' : ''
           }`}
           title={`${Math.round(pct)}% restante (${fmtG(roll.remainingWeight)})`}
@@ -360,7 +448,7 @@ export const SpoolCard = memo(function SpoolCard({ roll, onQuickUse, index }: Sp
           </div>
 
           <div className="font-mono text-[11px] font-medium text-text">
-            {fmtMoney(roll.price, settings.currency)}
+            {fmtMoney(roll.price, currency)}
           </div>
         </div>
 
@@ -401,6 +489,6 @@ export const SpoolCard = memo(function SpoolCard({ roll, onQuickUse, index }: Sp
           </button>
         </div>
       </div>
-    </motion.div>
+    </Shell>
   );
 });

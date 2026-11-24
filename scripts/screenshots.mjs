@@ -1,5 +1,5 @@
 /**
- * Screenshot Gallery Script — Filoteca v1.0.1
+ * Screenshot Gallery Script — Filoteca v2.0.0
  * Takes high-quality screenshots of every section for README & social media.
  */
 import { _electron as electron } from 'playwright-core';

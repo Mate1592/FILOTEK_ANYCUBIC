@@ -1,0 +1,780 @@
+import zlib from 'node:zlib';
+
+const CRC_TABLE = (() => {
+  const table = new Uint32Array(256);
+  for (let i = 0; i < 256; i++) {
+    let c = i;
+    for (let k = 0; k < 8; k++) {
+      c = (c & 1) !== 0 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
+    }
+    table[i] = c >>> 0;
+  }
+  return table;
+})();
+
+export function crc32(buf) {
+  let crc = 0xffffffff;
+  for (let i = 0; i < buf.length; i++) {
+    crc = CRC_TABLE[(crc ^ buf[i]) & 0xff] ^ (crc >>> 8);
+  }
+  return (crc ^ 0xffffffff) >>> 0;
+}
+
+function pngChunk(type, data) {
+  const typeBuf = Buffer.from(type, 'ascii');
+  const lenBuf = Buffer.alloc(4);
+  lenBuf.writeUInt32BE(data.length, 0);
+  const crcInput = Buffer.concat([typeBuf, data]);
+  const crcBuf = Buffer.alloc(4);
+  crcBuf.writeUInt32BE(crc32(crcInput), 0);
+  return Buffer.concat([lenBuf, typeBuf, data, crcBuf]);
+}
+
+export function createValidPngBuffer(width = 2, height = 2, rgba = [242, 117, 78, 255]) {
+  const signature = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+  const ihdr = Buffer.alloc(13);
+  ihdr.writeUInt32BE(width, 0);
+  ihdr.writeUInt32BE(height, 4);
+  ihdr[8] = 8; // bit depth
+  ihdr[9] = 6; // RGBA
+  ihdr[10] = 0;
+  ihdr[11] = 0;
+  ihdr[12] = 0;
+
+  const stride = 1 + width * 4;
+  const raw = Buffer.alloc(stride * height);
+  for (let y = 0; y < height; y++) {
+    const rowOffset = y * stride;
+    raw[rowOffset] = 0; // filter type None
+    for (let x = 0; x < width; x++) {
+      const px = rowOffset + 1 + x * 4;
+      raw[px] = rgba[0];
+      raw[px + 1] = rgba[1];
+      raw[px + 2] = rgba[2];
+      raw[px + 3] = rgba[3];
+    }
+  }
+  const idat = zlib.deflateSync(raw);
+  return Buffer.concat([
+    signature,
+    pngChunk('IHDR', ihdr),
+    pngChunk('IDAT', idat),
+    pngChunk('IEND', Buffer.alloc(0)),
+  ]);
+}
+
+export function createValidPngBase64(width = 2, height = 2, rgba = [242, 117, 78, 255]) {
+  return createValidPngBuffer(width, height, rgba).toString('base64');
+}
+
+function formatThumbnailBlock(dims, base64) {
+  const lines = [`; thumbnail begin ${dims} ${base64.length}`];
+  for (let i = 0; i < base64.length; i += 78) {
+    lines.push(`; ${base64.slice(i, i + 78)}`);
+  }
+  lines.push('; thumbnail end');
+  return lines.join('\n');
+}
+
+function parseDurationSeconds(printTime) {
+  if (typeof printTime === 'number' && Number.isFinite(printTime)) return Math.max(0, Math.round(printTime));
+  const str = String(printTime ?? '');
+  let total = 0;
+  const h = str.match(/(\d+)\s*h/i);
+  const m = str.match(/(\d+)\s*m/i);
+  const s = str.match(/(\d+)\s*s/i);
+  if (h) total += Number(h[1]) * 3600;
+  if (m) total += Number(m[1]) * 60;
+  if (s) total += Number(s[1]);
+  return total || 5130;
+}
+
+const DEFAULT_GCODE_SLOTS = [
+  {
+    grams: 42.5,
+    lengthMm: 14250.5,
+    volumeCm3: 34.27,
+    colorHex: '#F2754E',
+    material: 'PLA',
+    brand: 'Anycubic',
+    finish: 'glossy',
+    density: 1.24,
+    diameter: 1.75,
+  },
+];
+
+export function createValidGcode(opts = {}) {
+  const slicer = opts.slicer ?? 'orca';
+  const defaultVersions = {
+    orca: '2.5.0',
+    bambu: '1.10.0',
+    prusa: '2.8.0',
+    anycubic: '2.0.0.3',
+    cura: '5.7.0',
+  };
+  const slicerVersion = opts.slicerVersion ?? defaultVersions[slicer] ?? '2.5.0';
+  const date = opts.date ?? '2026-11-18';
+  const time = opts.time ?? '10:30:00';
+  const plateIndex = opts.plateIndex ?? 1;
+  const models = opts.models ?? ['Bracket_Test.stl'];
+  const slots = opts.slots ?? DEFAULT_GCODE_SLOTS;
+  const totalLayers = opts.totalLayers ?? 120;
+  const printTime = opts.printTime ?? '1h 25m 30s';
+  const dimensions = opts.dimensions ?? { x: 85.5, y: 60.2, z: 24.0 };
+  const colorChanges = opts.colorChanges ?? Math.max(0, slots.filter((s) => (s.grams ?? 0) > 0).length - 1);
+  const includeExtendedM2 = opts.includeExtendedM2 ?? true;
+  const includeBodyMoves = opts.includeBodyMoves ?? true;
+
+  if (slicer === 'cura') {
+    const seconds = parseDurationSeconds(printTime);
+    const totalMeters = slots.reduce((acc, s) => acc + ((s.lengthMm ?? (s.grams ?? 0) * 335) / 1000), 0);
+    const totalGrams = slots.reduce((acc, s) => acc + (s.grams ?? 0), 0);
+    const lines = [
+      ';FLAVOR:Marlin',
+      `;TIME:${seconds}`,
+      `;Filament used: ${totalMeters.toFixed(2)}m`,
+      `;Filament weight: ${totalGrams.toFixed(2)}g`,
+      ';Layer height: 0.2',
+      ';MINX:0',
+      ';MINY:0',
+      ';MINZ:0.2',
+      `;MAXX:${dimensions.x}`,
+      `;MAXY:${dimensions.y}`,
+      `;MAXZ:${dimensions.z}`,
+      `;Generated with Cura_SteamEngine ${slicerVersion}`,
+      `;LAYER_COUNT:${totalLayers}`,
+    ];
+    for (const model of models) {
+      lines.push(`;MESH:${model}`);
+    }
+    if (includeBodyMoves) {
+      lines.push('G28', 'G90', 'M104 S210', 'G1 X10 Y10 E0.5', 'M104 S0', 'M84');
+    }
+    return lines.join('\n');
+  }
+
+  const slicerDisplay = {
+    orca: 'OrcaSlicer',
+    bambu: 'BambuStudio',
+    prusa: 'PrusaSlicer',
+    anycubic: 'AnycubicSlicerNext',
+  }[slicer] ?? 'OrcaSlicer';
+
+  const lines = [
+    `; generated by ${slicerDisplay} ${slicerVersion} on ${date} at ${time}`,
+    `; total layer number: ${totalLayers}`,
+  ];
+
+  if (opts.includeThumbnail) {
+    const dims = typeof opts.includeThumbnail === 'string' ? opts.includeThumbnail : '300x300';
+    lines.push(formatThumbnailBlock(dims, createValidPngBase64()));
+  }
+
+  models.forEach((m, i) => {
+    lines.push(`EXCLUDE_OBJECT_DEFINE NAME=${m}_id_${i}_copy_0 CENTER=110,110`);
+    lines.push(`; printing object ${m}`);
+  });
+
+  lines.push(
+    `; source_info = ${JSON.stringify({ models: models.map((name) => ({ name })), plate_index: plateIndex })}`,
+  );
+
+  if (includeBodyMoves) {
+    lines.push('G28', 'G90', 'M104 S210', 'G1 X10 Y10 E0.5', 'M104 S0', 'M84');
+  }
+
+  const totalGrams = slots.reduce((sum, s) => sum + (s.grams ?? 0), 0);
+  const mmList = slots.map((s) => (s.lengthMm ?? (s.grams ?? 0) * 335).toFixed(2)).join(', ');
+  const cm3List = slots.map((s) => (s.volumeCm3 ?? (s.grams ?? 0) / (s.density ?? 1.24)).toFixed(2)).join(', ');
+  const gList = slots.map((s) => (s.grams ?? 0).toFixed(2)).join(', ');
+  const colorList = slots.map((s) => s.colorHex ?? '#F2754E').join(';');
+  const densityList = slots.map((s) => s.density ?? 1.24).join(',');
+  const diameterList = slots.map((s) => s.diameter ?? 1.75).join(',');
+  const typeList = slots.map((s) => s.material ?? 'PLA').join(';');
+  const settingsIdList = slots
+    .map((s) => `"${s.brand ?? 'Anycubic'} ${s.material ?? 'PLA'} ${s.finish ?? 'glossy'} @Printer 0.4 nozzle"`)
+    .join(';');
+
+  lines.push(
+    `; filament used [mm] = ${mmList}`,
+    `; filament used [cm3] = ${cm3List}`,
+  );
+  if (!opts.omitGrams) {
+    lines.push(
+      `; filament used [g] = ${gList}`,
+      `; total filament used [g] = ${totalGrams.toFixed(2)}`,
+    );
+  }
+  lines.push(
+    `; filament_colour = ${colorList}`,
+    `; filament_density = ${densityList}`,
+    `; filament_diameter = ${diameterList}`,
+    `; filament_type = ${typeList}`,
+    `; filament_settings_id = ${settingsIdList}`,
+    `; total filament change = ${colorChanges}`,
+    `; total layers count = ${totalLayers}`,
+    `; estimated printing time (normal mode) = ${printTime}`,
+    `; print_time = ${printTime}`,
+    `; model_size = ${dimensions.x},${dimensions.y},${dimensions.z}`,
+  );
+
+  if (includeExtendedM2) {
+    lines.push(
+      '; layer_height = 0.2',
+      '; nozzle_diameter = 0.4',
+      '; sparse_infill_density = 15%',
+      '; printer_model = Anycubic Kobra X',
+      '; estimated printing time (silent mode) = 1h 45m 00s',
+      '; estimated printing time (sport mode) = 1h 05m 00s',
+    );
+  }
+
+  return lines.join('\n');
+}
+
+export function createUnslicedDummyGcode() {
+  return [
+    '; dummy project cache',
+    '; total layer number: 0',
+    '; total layers count = 0',
+    '; print_time = 0s',
+    '; estimated printing time (normal mode) = 0s',
+  ].join('\n');
+}
+
+export function createMalformedGcode() {
+  return [
+    '; corrupted gcode header',
+    '; source_info = {bad_json_without_end',
+    '; paint_info = [broken',
+    '; filament used [g] = NaN, undefined',
+    '; filament_colour = ',
+    '\uFFFD\uFFFD\uFFFD',
+  ].join('\n');
+}
+
+function buildZipBuffer(entries, { useDataDescriptor = false } = {}) {
+  const localParts = [];
+  const cdParts = [];
+  let offset = 0;
+
+  for (const entry of entries) {
+    const nameBuf = Buffer.from(entry.name, 'utf8');
+    const rawData = Buffer.isBuffer(entry.data) ? entry.data : Buffer.from(entry.data, 'utf8');
+    const method = entry.compression === 'store' ? 0 : 8;
+    const compData = method === 8 ? zlib.deflateRawSync(rawData) : rawData;
+    const crc = crc32(rawData);
+    const flags = useDataDescriptor ? 0x0808 : 0x0800;
+
+    const lfh = Buffer.alloc(30);
+    lfh.writeUInt32LE(0x04034b50, 0);
+    lfh.writeUInt16LE(20, 4);
+    lfh.writeUInt16LE(flags, 6);
+    lfh.writeUInt16LE(method, 8);
+    lfh.writeUInt16LE(0, 10); // mod time
+    lfh.writeUInt16LE(0x5421, 12); // mod date
+    lfh.writeUInt32LE(useDataDescriptor ? 0 : crc, 14);
+    lfh.writeUInt32LE(useDataDescriptor ? 0 : compData.length, 18);
+    lfh.writeUInt32LE(useDataDescriptor ? 0 : rawData.length, 22);
+    lfh.writeUInt16LE(nameBuf.length, 26);
+    lfh.writeUInt16LE(0, 28);
+
+    localParts.push(lfh, nameBuf, compData);
+
+    let ddLen = 0;
+    if (useDataDescriptor) {
+      const dd = Buffer.alloc(16);
+      dd.writeUInt32LE(0x08074b50, 0);
+      dd.writeUInt32LE(crc, 4);
+      dd.writeUInt32LE(compData.length, 8);
+      dd.writeUInt32LE(rawData.length, 12);
+      localParts.push(dd);
+      ddLen = 16;
+    }
+
+    const cdh = Buffer.alloc(46);
+    cdh.writeUInt32LE(0x02014b50, 0);
+    cdh.writeUInt16LE(20, 4); // version made by
+    cdh.writeUInt16LE(20, 6); // version needed
+    cdh.writeUInt16LE(flags, 8);
+    cdh.writeUInt16LE(method, 10);
+    cdh.writeUInt16LE(0, 12);
+    cdh.writeUInt16LE(0x5421, 14);
+    cdh.writeUInt32LE(crc, 16);
+    cdh.writeUInt32LE(compData.length, 20);
+    cdh.writeUInt32LE(rawData.length, 24);
+    cdh.writeUInt16LE(nameBuf.length, 28);
+    cdh.writeUInt16LE(0, 30);
+    cdh.writeUInt16LE(0, 32);
+    cdh.writeUInt16LE(0, 34);
+    cdh.writeUInt16LE(0, 36);
+    cdh.writeUInt32LE(0, 38);
+    cdh.writeUInt32LE(offset, 42);
+
+    cdParts.push(cdh, nameBuf);
+    offset += 30 + nameBuf.length + compData.length + ddLen;
+  }
+
+  const cdBuf = Buffer.concat(cdParts);
+  const eocd = Buffer.alloc(22);
+  eocd.writeUInt32LE(0x06054b50, 0);
+  eocd.writeUInt16LE(0, 4);
+  eocd.writeUInt16LE(0, 6);
+  eocd.writeUInt16LE(entries.length, 8);
+  eocd.writeUInt16LE(entries.length, 10);
+  eocd.writeUInt32LE(cdBuf.length, 12);
+  eocd.writeUInt32LE(offset, 16);
+  eocd.writeUInt16LE(0, 20);
+
+  return Buffer.concat([...localParts, cdBuf, eocd]);
+}
+
+function escapeXml(str) {
+  return String(str ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+export function createValid3mfBuffer(plates = [{}], opts = {}) {
+  const compression = opts.compression ?? 'deflate';
+  const useDataDescriptor = Boolean(opts.useDataDescriptor);
+  const includeSliceInfo = opts.includeSliceInfo ?? true;
+  const includeOpcBoilerplate = opts.includeOpcBoilerplate ?? true;
+
+  const normalizedPlates = (plates.length > 0 ? plates : [{}]).map((p, idx) => ({
+    ...p,
+    plateIndex: p.plateIndex ?? idx + 1,
+    models: p.models ?? [`Part_${idx + 1}.stl`],
+    slots: p.slots ?? DEFAULT_GCODE_SLOTS,
+    printTime: p.printTime ?? '1h 25m 30s',
+    includeThumbnail: p.includeThumbnail ?? true,
+    includePlateJson: p.includePlateJson ?? true,
+  }));
+
+  const entries = [];
+
+  // 1. Metadata/plate_N.gcode FIRST for compatibility with linear local-header readers
+  for (const plate of normalizedPlates) {
+    const gcodeText = plate.gcodeText ?? createValidGcode(plate);
+    entries.push({
+      name: `Metadata/plate_${plate.plateIndex}.gcode`,
+      data: gcodeText,
+      compression,
+    });
+  }
+
+  // 2. Metadata/slice_info.config
+  if (includeSliceInfo) {
+    const plateXml = normalizedPlates
+      .map((p) => {
+        const seconds = parseDurationSeconds(p.printTime);
+        const totalGrams = p.slots.reduce((s, slot) => s + (slot.grams ?? 0), 0);
+        const filamentXml = p.slots
+          .map((slot, sIdx) => {
+            const usedM = ((slot.lengthMm ?? (slot.grams ?? 0) * 335) / 1000).toFixed(2);
+            return `      <filament id="${sIdx + 1}" type="${escapeXml(slot.material ?? 'PLA')}" color="${escapeXml(slot.colorHex ?? '#F2754E')}" used_g="${(slot.grams ?? 0).toFixed(2)}" used_m="${usedM}" />`;
+          })
+          .join('\n');
+        const objXml = p.models
+          .map((m) => `      <object name="${escapeXml(m)}" skipped="false" />`)
+          .join('\n');
+        return [
+          '  <plate>',
+          `    <metadata key="index" value="${p.plateIndex}" />`,
+          `    <metadata key="prediction" value="${seconds}" />`,
+          `    <metadata key="weight" value="${totalGrams.toFixed(2)}" />`,
+          objXml,
+          filamentXml,
+          '  </plate>',
+        ].join('\n');
+      })
+      .join('\n');
+
+    const sliceInfoXml = `<?xml version="1.0" encoding="UTF-8"?>\n<config>\n${plateXml}\n</config>\n`;
+    entries.push({
+      name: 'Metadata/slice_info.config',
+      data: sliceInfoXml,
+      compression,
+    });
+  }
+
+  // 3. Metadata/plate_N.json
+  for (const plate of normalizedPlates) {
+    if (!plate.includePlateJson) continue;
+    const plateJson = JSON.stringify(
+      {
+        plate_index: plate.plateIndex,
+        bbox_objects: plate.models.map((name) => ({ name })),
+      },
+      null,
+      2,
+    );
+    entries.push({
+      name: `Metadata/plate_${plate.plateIndex}.json`,
+      data: plateJson,
+      compression,
+    });
+  }
+
+  // 4. Metadata/plate_N.png and plate_N_small.png
+  const pngBuf = createValidPngBuffer(2, 2, [242, 117, 78, 255]);
+  for (const plate of normalizedPlates) {
+    if (!plate.includeThumbnail) continue;
+    entries.push({
+      name: `Metadata/plate_${plate.plateIndex}.png`,
+      data: pngBuf,
+      compression: 'store',
+    });
+    entries.push({
+      name: `Metadata/plate_${plate.plateIndex}_small.png`,
+      data: pngBuf,
+      compression: 'store',
+    });
+  }
+
+  // 5. OPC boilerplate LAST
+  if (includeOpcBoilerplate) {
+    entries.push({
+      name: '[Content_Types].xml',
+      data: '<?xml version="1.0" encoding="UTF-8"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="gcode" ContentType="text/x-gcode"/></Types>',
+      compression,
+    });
+    entries.push({
+      name: '_rels/.rels',
+      data: '<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"></Relationships>',
+      compression,
+    });
+  }
+
+  return buildZipBuffer(entries, { useDataDescriptor });
+}
+
+export function createMalformed3mfBuffer(mode = 'truncated-zip') {
+  if (mode === 'bad-magic') {
+    return Buffer.from('CORRUPT_3MF_NOT_A_ZIP_ARCHIVE_0000', 'utf8');
+  }
+  if (mode === 'empty-zip') {
+    const eocd = Buffer.alloc(22);
+    eocd.writeUInt32LE(0x06054b50, 0);
+    return eocd;
+  }
+  // 'truncated-zip'
+  const nameBuf = Buffer.from('Metadata/plate_1.gcode', 'utf8');
+  const lfh = Buffer.alloc(30);
+  lfh.writeUInt32LE(0x04034b50, 0);
+  lfh.writeUInt16LE(20, 4);
+  lfh.writeUInt16LE(0x0800, 6);
+  lfh.writeUInt16LE(8, 8);
+  lfh.writeUInt32LE(0xffffffff, 18); // bogus compressed size
+  lfh.writeUInt32LE(0xffffffff, 22);
+  lfh.writeUInt16LE(nameBuf.length, 26);
+  return Buffer.concat([lfh, nameBuf, Buffer.alloc(32, 0xaa)]);
+}
+
+export function createAnycubicMetadata(opts = {}) {
+  const date = opts.date ?? '2026-11-18';
+  const time = opts.time ?? '11:15:00';
+  const plateIndex = opts.plateIndex ?? 1;
+  const models = opts.models ?? ['Fixture_Model.stl'];
+  const slots = opts.slots ?? [
+    { grams: 18.4, lengthMm: 6160.2, volumeCm3: 14.8, colorHex: '#212721', material: 'PLA', brand: 'Anycubic', finish: 'glossy', density: 1.24, diameter: 1.75 },
+    { grams: 0, lengthMm: 0, volumeCm3: 0, colorHex: '#FFFFFF', material: 'PLA', brand: 'Anycubic', finish: 'glossy', density: 1.24, diameter: 1.75 },
+  ];
+  const includeThumbnail = opts.includeThumbnail ?? true;
+  const totalLayers = opts.totalLayers ?? 95;
+  const printTime = opts.printTime ?? '53m 34s';
+  const dimensions = opts.dimensions ?? { x: 92.4, y: 54.1, z: 18.6 };
+
+  const lines = [
+    '; HEADER_BLOCK_START',
+    `; generated by AnycubicSlicerNext 2.0.0.3 on ${date} at ${time}`,
+    `; total layer number: ${totalLayers}`,
+    `; source_info: ${JSON.stringify({ models: models.map((name) => ({ name })), plate_index: plateIndex })}`,
+    `; paint_info = ${JSON.stringify(slots.filter((s) => (s.grams ?? 0) > 0).map((_, idx) => ({ id: idx })))}`,
+    '; HEADER_BLOCK_END',
+  ];
+
+  if (includeThumbnail) {
+    const b64 = createValidPngBase64();
+    lines.push(
+      '; THUMBNAIL_BLOCK_START',
+      formatThumbnailBlock('260x260', b64),
+      formatThumbnailBlock('512x512', b64),
+      '; THUMBNAIL_BLOCK_END',
+    );
+  }
+
+  const mmList = slots.map((s) => (s.lengthMm ?? (s.grams ?? 0) * 335).toFixed(2)).join(', ');
+  const cm3List = slots.map((s) => (s.volumeCm3 ?? (s.grams ?? 0) / (s.density ?? 1.24)).toFixed(2)).join(', ');
+  const gList = slots.map((s) => (s.grams ?? 0).toFixed(2)).join(', ');
+  const totalGrams = slots.reduce((acc, s) => acc + (s.grams ?? 0), 0);
+
+  let colorEntries = slots.map((s, idx) =>
+    opts.placeholderColor && idx === 0 ? '#FFFFFFFF' : (s.colorHex ?? '#212721'),
+  );
+  let typeEntries = slots.map((s) => s.material ?? 'PLA');
+  if (opts.mismatchedArrays) {
+    colorEntries = [...colorEntries, '#FF0000', '#00FF00'];
+    typeEntries = [typeEntries[0] ?? 'PLA'];
+  }
+
+  lines.push('; statistics = begin');
+  lines.push(`; filament used [mm] = ${mmList}`);
+  lines.push(`; filament used [cm3] = ${cm3List}`);
+  if (!opts.omitGrams) {
+    lines.push(`; filament used [g] = ${gList}`);
+    lines.push(`; total filament used [g] = ${totalGrams.toFixed(2)}`);
+  }
+  lines.push(`; filament_colour = ${colorEntries.join(';')}`);
+  if (opts.placeholderColor) {
+    lines.push(`; filament_colour_info = ${slots.map((s) => s.colorHex ?? '#212721').join(';')}`);
+  }
+  lines.push(`; filament_density = ${slots.map((s) => s.density ?? 1.24).join(',')}`);
+  lines.push(`; filament_diameter = ${slots.map((s) => s.diameter ?? 1.75).join(',')}`);
+  lines.push(`; filament_type = ${typeEntries.join(';')}`);
+  lines.push(
+    `; filament_settings_id = ${slots
+      .map((s) => `"${s.brand ?? 'Anycubic'} ${s.material ?? 'PLA'} ${s.finish ?? 'glossy'} @Anycubic Kobra X"`)
+      .join(';')}`,
+  );
+  lines.push(`; total filament change = ${Math.max(0, slots.filter((s) => (s.grams ?? 0) > 0).length - 1)}`);
+  lines.push(`; total layers count = ${totalLayers}`);
+  lines.push(`; estimated printing time (normal mode) = ${printTime}`);
+  lines.push(`; print_time = ${printTime}`);
+  lines.push(`; model_size = ${dimensions.x},${dimensions.y},${dimensions.z}`);
+  lines.push('; statistics = end');
+
+  return lines.join('\n');
+}
+
+export function createCorruptThumbnailMetadata() {
+  return [
+    '; HEADER_BLOCK_START',
+    '; generated by AnycubicSlicerNext 2.0.0.3 on 2026-11-18 at 12:00:00',
+    '; total layer number: 15',
+    '; source_info: {"models":[{"name":"CorruptThumb_Test.stl"}],"plate_index":1}',
+    '; HEADER_BLOCK_END',
+    '; THUMBNAIL_BLOCK_START',
+    '; thumbnail begin 260x260 200',
+    '; CORRUPTED_DATA_NOT_A_VALID_PNG_HEADER_HERE_XYZ_ABC_123456789',
+    '; thumbnail end',
+    '; THUMBNAIL_BLOCK_END',
+    '; filament used [g] = 10.50',
+    '; total filament used [g] = 10.50',
+    '; filament_colour = #1f2023',
+    '; filament_type = PLA',
+    '; filament_density = 1.24',
+    '; filament_diameter = 1.75',
+    '; total layers count = 15',
+    '; estimated printing time (normal mode) = 20m 00s',
+    '; print_time = 20m 00s',
+  ].join('\n');
+}
+
+const CSV_HEADERS = [
+  'Marca',
+  'Material',
+  'Color',
+  'Hex',
+  'Acabado',
+  'Diametro',
+  'PesoInicial_g',
+  'PesoRestante_g',
+  'Precio',
+  'FechaCompra',
+  'Ubicacion',
+  'TempBoquillaMin',
+  'TempBoquillaMax',
+  'TempCamaMin',
+  'TempCamaMax',
+  'Estado',
+  'Notas',
+];
+
+function csvEscape(val) {
+  return `"${String(val ?? '').replace(/"/g, '""')}"`;
+}
+
+export function createCsvRolls(rows = []) {
+  const lines = [CSV_HEADERS.join(',')];
+  for (const r of rows) {
+    const nozzleMin = r.nozzleTemp?.min ?? r.nozzleMin ?? 200;
+    const nozzleMax = r.nozzleTemp?.max ?? r.nozzleMax ?? 220;
+    const bedMin = r.bedTemp?.min ?? r.bedMin ?? 55;
+    const bedMax = r.bedTemp?.max ?? r.bedMax ?? 65;
+    lines.push(
+      [
+        csvEscape(r.brand ?? 'Anycubic'),
+        csvEscape(r.material ?? 'PLA'),
+        csvEscape(r.colorName ?? 'Negro Clásico'),
+        csvEscape(r.colorHex ?? '#1f2023'),
+        csvEscape(r.finish ?? 'glossy'),
+        csvEscape(r.diameter ?? 1.75),
+        csvEscape(r.initialWeight ?? 1000),
+        csvEscape(r.remainingWeight ?? 1000),
+        csvEscape(r.price ?? 75000),
+        csvEscape(r.purchaseDate ?? '2026-11-18'),
+        csvEscape(r.location ?? 'Estante A · 1'),
+        csvEscape(nozzleMin),
+        csvEscape(nozzleMax),
+        csvEscape(bedMin),
+        csvEscape(bedMax),
+        csvEscape(r.status ?? 'in_use'),
+        csvEscape(r.notes ?? ''),
+      ].join(','),
+    );
+  }
+  return lines.join('\r\n');
+}
+
+export function createMalformedCsv(mode = 'insufficient-cols') {
+  if (mode === 'header-only') {
+    return CSV_HEADERS.join(',');
+  }
+  if (mode === 'garbage') {
+    return 'not;valid;csv\u0000\uFFFD\n;;;';
+  }
+  return `${CSV_HEADERS.join(',')}\r\nonly,two,cols`;
+}
+
+export function createJsonExportBundle(data = {}) {
+  const bundle = {
+    app: 'filoteca',
+    version: 2,
+    exportedAt: data.exportedAt ?? '2026-11-18T12:00:00.000Z',
+    rolls: data.rolls ?? createLargeInventoryRolls(2),
+    usage: data.usage ?? [],
+    shopping: data.shopping ?? [],
+    orders: data.orders ?? [],
+    gcodeJobs: data.gcodeJobs ?? [],
+  };
+  return JSON.stringify(bundle, null, 2);
+}
+
+export function createMalformedJson(mode = 'syntax') {
+  if (mode === 'missing-rolls') {
+    return '{"app":"filoteca","version":2,"data":[]}';
+  }
+  return '{ "app": "filoteca", "rolls": [ INVALID_JSON';
+}
+
+export function createMalformedDbBuffer() {
+  return Buffer.from('NOT_A_SQLITE_DATABASE_FILE_CORRUPTED', 'utf8');
+}
+
+const MAT_LIST = [
+  'PLA',
+  'PLA+',
+  'PETG',
+  'ABS',
+  'ASA',
+  'TPU',
+  'Nylon',
+  'PC',
+  'HIPS',
+  'PVA',
+  'PLA-CF',
+  'Otro',
+];
+const FIN_LIST = ['matte', 'glossy', 'translucent', 'silk', 'glitter'];
+const BRAND_LIST = [
+  'Anycubic',
+  'Bambu Lab',
+  'Sunlu',
+  'eSUN',
+  'Polymaker',
+  'Prusament',
+  'Overture',
+  'Elegoo',
+];
+const PALETTE = [
+  { name: 'Negro Clásico', hex: '#1f2023' },
+  { name: 'Blanco Nieve', hex: '#f4f4f6' },
+  { name: 'Naranja Taller', hex: '#f2754e' },
+  { name: 'Azul Cobalto', hex: '#2563eb' },
+  { name: 'Verde Bosque', hex: '#15803d' },
+  { name: 'Rojo Carmesí', hex: '#dc2626' },
+  { name: 'Gris Titanio', hex: '#64748b' },
+  { name: 'Dorado Seda', hex: '#d4af37' },
+  { name: 'Morado Neón', hex: '#7c3aed' },
+  { name: 'Amarillo Sol', hex: '#eab308' },
+  { name: 'Turquesa', hex: '#0d9488' },
+  { name: 'Bronce', hex: '#92400e' },
+];
+const MAT_TEMPS = {
+  PLA: { nozzle: { min: 195, max: 220 }, bed: { min: 55, max: 65 } },
+  'PLA+': { nozzle: { min: 205, max: 225 }, bed: { min: 60, max: 65 } },
+  PETG: { nozzle: { min: 230, max: 250 }, bed: { min: 75, max: 85 } },
+  ABS: { nozzle: { min: 240, max: 260 }, bed: { min: 95, max: 110 } },
+  ASA: { nozzle: { min: 245, max: 265 }, bed: { min: 95, max: 110 } },
+  TPU: { nozzle: { min: 215, max: 235 }, bed: { min: 45, max: 60 } },
+  Nylon: { nozzle: { min: 255, max: 280 }, bed: { min: 80, max: 100 } },
+  PC: { nozzle: { min: 265, max: 290 }, bed: { min: 100, max: 115 } },
+  HIPS: { nozzle: { min: 230, max: 245 }, bed: { min: 95, max: 110 } },
+  PVA: { nozzle: { min: 190, max: 210 }, bed: { min: 50, max: 60 } },
+  'PLA-CF': { nozzle: { min: 210, max: 235 }, bed: { min: 55, max: 65 } },
+  Otro: { nozzle: { min: 200, max: 230 }, bed: { min: 55, max: 65 } },
+};
+
+export function createLargeInventoryRolls(count = 260) {
+  const rolls = [];
+  for (let i = 0; i < count; i++) {
+    const idxStr = String(i + 1).padStart(3, '0');
+    const isPrimary = i === 0;
+    const material = isPrimary ? 'PLA' : MAT_LIST[i % MAT_LIST.length];
+    const finish = isPrimary ? 'glossy' : FIN_LIST[i % FIN_LIST.length];
+    const brand = isPrimary ? 'Anycubic' : BRAND_LIST[i % BRAND_LIST.length];
+    const color = isPrimary ? PALETTE[0] : PALETTE[i % PALETTE.length];
+    const initialWeight = i % 7 === 6 ? 500 : 1000;
+
+    let remainingWeight;
+    let status;
+    if (isPrimary) {
+      remainingWeight = 850;
+      status = 'in_use';
+    } else if (i % 15 === 14) {
+      remainingWeight = 0;
+      status = 'empty';
+    } else if (i % 10 === 9) {
+      remainingWeight = 50;
+      status = 'in_use';
+    } else if (i % 5 === 4) {
+      remainingWeight = 150;
+      status = 'dry';
+    } else {
+      remainingWeight = Math.min(initialWeight, 750 + ((i * 17) % 200));
+      status = i % 3 === 0 ? 'sealed' : 'in_use';
+    }
+
+    const day = String(1 + (i % 28)).padStart(2, '0');
+    const month = String(1 + (i % 10)).padStart(2, '0');
+    const shelfLetter = String.fromCharCode(65 + (i % 6));
+    const temps = MAT_TEMPS[material] ?? MAT_TEMPS.PLA;
+    const isoStamp = `2026-${month}-${day}T10:00:00.000Z`;
+
+    rolls.push({
+      id: `bulk-roll-${idxStr}`,
+      brand,
+      material,
+      finish,
+      colorName: isPrimary ? 'Negro Clásico' : `${color.name} #${idxStr}`,
+      colorHex: color.hex,
+      diameter: i % 20 === 19 ? 2.85 : 1.75,
+      initialWeight,
+      remainingWeight,
+      price: 65000 + ((i * 4500) % 90000),
+      purchaseDate: `2026-${month}-${day}`,
+      location: `Estante ${shelfLetter} · ${(i % 8) + 1}`,
+      nozzleTemp: { ...temps.nozzle },
+      bedTemp: { ...temps.bed },
+      notes: isPrimary ? 'Rollo principal de prueba' : `Lote inventario ${idxStr}`,
+      status,
+      createdAt: isoStamp,
+      updatedAt: isoStamp,
+      deliveryDays: 5,
+    });
+  }
+  return rolls;
+}

@@ -118,12 +118,16 @@ export interface GcodeFilamentMatch {
   gcodeColorHex?: string; // Color original extraído del archivo G-code
   colorName?: string;
   grams: number;
+  lengthMm?: number;
+  volumeCm3?: number;
   rollId?: string;
   suggestedRollId?: string;
   confidence?: number;
   insufficientStock?: boolean;
   missingGrams?: number;
 }
+
+export type ParsedGcodeFilament = GcodeFilamentMatch;
 
 export type GcodeJobStatus = 'unreviewed' | 'printed' | 'failed' | 'discarded';
 
@@ -154,10 +158,45 @@ export interface GcodeJob {
   isLatestInSession?: boolean;
   previousVersionsCount?: number;
   versionIds?: string[];
+  slicerName?: string;
+  slicerVersion?: string;
+  printerModel?: string;
+  nozzleDiameter?: number;
+  layerHeight?: number;
+  infillPercent?: number;
+  silentTimeSeconds?: number;
+  sportTimeSeconds?: number;
+  filamentLengthMm?: number;
+  filamentVolumeCm3?: number;
+  plates?: GcodeJob[];
 }
+
+export type ParsedGcodeFile = GcodeJob;
 
 export type ThemePref = 'system' | 'light' | 'dark';
 export type Language = 'es' | 'en' | 'pt';
+
+export interface WorkshopPrefs {
+  electricityRatePerKwh: number;
+  printerWattage: number;
+  machineHourlyRate: number;
+  laborHourlyRate: number;
+  defaultFailurePct: number;
+  defaultMarginPct: number;
+  defaultTaxPct: number;
+  defaultPrinterPreset: string;
+}
+
+export const DEFAULT_WORKSHOP_PREFS: WorkshopPrefs = {
+  electricityRatePerKwh: 850,
+  printerWattage: 150,
+  machineHourlyRate: 2500,
+  laborHourlyRate: 0,
+  defaultFailurePct: 5,
+  defaultMarginPct: 30,
+  defaultTaxPct: 0,
+  defaultPrinterPreset: 'generic-fdm',
+};
 
 export interface Settings {
   theme: ThemePref;
@@ -185,6 +224,9 @@ export interface Settings {
   companionAutoClose?: boolean;
   rememberedMappings?: Record<string, string>;
   slotRollMappings?: Record<string, string>;
+
+  // Herramientas de taller
+  workshopPrefs?: WorkshopPrefs;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -209,6 +251,7 @@ export const DEFAULT_SETTINGS: Settings = {
   companionAutoClose: true,
   rememberedMappings: {},
   slotRollMappings: {},
+  workshopPrefs: DEFAULT_WORKSHOP_PREFS,
 };
 
 export interface DbSnapshot {
@@ -267,6 +310,13 @@ export interface FilotecaApi {
   file: {
     save(content: string, defaultName: string, filters: FileFilter[]): Promise<Result<string | null>>;
     open(filters: FileFilter[]): Promise<Result<{ name: string; content: string } | null>>;
+    openMultiple(filters?: FileFilter[]): Promise<string[]>;
+    saveTextFile(opts: {
+      defaultName: string;
+      content: string;
+      filters?: FileFilter[];
+    }): Promise<{ ok: boolean; path?: string; error?: string }>;
+    getPathForFile(file: File): string;
     selectFolder(): Promise<Result<string | null>>;
     parseGcodePath(filepath: string): Promise<Result<GcodeJob | null>>;
   };

@@ -25,7 +25,7 @@ If applicable, add screenshots to help explain your problem.
 
 **Desktop Environment:**
  - OS: [e.g. Windows 10, Windows 11]
- - Filoteca Version: [e.g. v1.0.0 Portable]
+ - Filoteca Version: [e.g. v2.0.0 Portable]
 
 **Slicer Information (If applicable):**
  - Slicer Name: [e.g. Anycubic Slicer Next, OrcaSlicer]

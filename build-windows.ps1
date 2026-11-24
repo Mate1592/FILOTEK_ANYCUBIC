@@ -1,4 +1,4 @@
-# Script de PowerShell para compilar Filoteca en Windows con un solo comando
+﻿# Script de PowerShell para compilar Filoteca en Windows con un solo comando
 # Requiere Node.js 18+ (si no está instalado en PATH, busca en $env:LOCALAPPDATA\devtools\node-*)
 
 $ErrorActionPreference = "Stop"
@@ -44,7 +44,7 @@ Write-Host ""
 Write-Host "==========================================================" -ForegroundColor Green
 Write-Host " ¡Compilación finalizada con éxito!                       " -ForegroundColor Green
 Write-Host " Los ejecutables se encuentran en la carpeta 'release\': " -ForegroundColor Green
-Write-Host "   - release\Filoteca Setup 1.0.0.exe (Instalador NSIS)   " -ForegroundColor Cyan
-Write-Host "   - release\Filoteca-Portable-1.0.0.exe (Versión portable)" -ForegroundColor Cyan
+Write-Host "   - release\Filoteca Setup 2.0.0.exe (Instalador NSIS)   " -ForegroundColor Cyan
+Write-Host "   - release\Filoteca-Portable-2.0.0.exe (Versión portable)" -ForegroundColor Cyan
 Write-Host "   - release\win-unpacked\Filoteca.exe (Ejecutable directo)" -ForegroundColor Cyan
 Write-Host "==========================================================" -ForegroundColor Green

@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   Inbox,
@@ -22,14 +22,17 @@ import {
   HelpCircle,
   ExternalLink,
   Pipette,
+  Calculator,
 } from 'lucide-react';
 import { useStore } from '../../store/useStore';
+import { useI18n } from '../../lib/i18n';
 import { formatPrintTime } from '../../lib/gcodeParser';
 import { fmtG, pctRemaining } from '../../lib/roll';
 import { api, isDesktop } from '../../lib/api';
 import type { GcodeJob, GcodeJobStatus, Roll } from '../../shared/types';
 
 export function InboxView() {
+  const { t } = useI18n();
   const gcodeJobs = useStore((s) => s.gcodeJobs);
   const rolls = useStore((s) => s.rolls);
   const markJobPrinted = useStore((s) => s.markJobPrinted);
@@ -40,12 +43,57 @@ export function InboxView() {
   const updateJobFilamentRoll = useStore((s) => s.updateJobFilamentRoll);
   const updateJobFilamentColor = useStore((s) => s.updateJobFilamentColor);
   const updateJobFilamentGrams = useStore((s) => s.updateJobFilamentGrams);
+  const openToolsWithDraft = useStore((s) => s.openToolsWithDraft);
   const toast = useStore((s) => s.toast);
 
   const [activeTab, setActiveTab] = useState<GcodeJobStatus | 'all'>('unreviewed');
   const [selectedJobIds, setSelectedJobIds] = useState<Set<string>>(new Set());
   const [editingGrams, setEditingGrams] = useState<Record<string, Record<number, number>>>({});
   const [expandedSessions, setExpandedSessions] = useState<Set<string>>(new Set());
+
+  const gramsTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
+  const pendingGramsRef = useRef<Map<string, { jobId: string; slotIndex: number; grams: number }>>(new Map());
+
+  const flushGramsKey = useCallback(async (key: string) => {
+    const timer = gramsTimersRef.current.get(key);
+    if (timer) {
+      clearTimeout(timer);
+      gramsTimersRef.current.delete(key);
+    }
+    const pending = pendingGramsRef.current.get(key);
+    if (!pending) return;
+    pendingGramsRef.current.delete(key);
+    await useStore.getState().updateJobFilamentGrams(pending.jobId, pending.slotIndex, pending.grams);
+  }, []);
+
+  const flushAllPendingGrams = useCallback(async () => {
+    const keys = Array.from(pendingGramsRef.current.keys());
+    for (const key of keys) {
+      await flushGramsKey(key);
+    }
+  }, [flushGramsKey]);
+
+  const scheduleGramsSave = useCallback(
+    (jobId: string, slotIndex: number, grams: number) => {
+      const key = `${jobId}:${slotIndex}`;
+      pendingGramsRef.current.set(key, { jobId, slotIndex, grams });
+      const prevTimer = gramsTimersRef.current.get(key);
+      if (prevTimer) clearTimeout(prevTimer);
+      gramsTimersRef.current.set(
+        key,
+        setTimeout(() => {
+          void flushGramsKey(key);
+        }, 350),
+      );
+    },
+    [flushGramsKey],
+  );
+
+  useEffect(() => {
+    return () => {
+      void flushAllPendingGrams();
+    };
+  }, [flushAllPendingGrams]);
 
   // Estado para el modal de impresión parcial / fallida
   const [failedModalJob, setFailedModalJob] = useState<GcodeJob | null>(null);
@@ -104,24 +152,54 @@ export function InboxView() {
 
   const handleBatchPrint = async () => {
     if (selectedJobIds.size === 0) return;
+    await flushAllPendingGrams();
     await markJobsPrinted(Array.from(selectedJobIds));
     setSelectedJobIds(new Set());
   };
 
   const handleBatchDiscard = async () => {
     if (selectedJobIds.size === 0) return;
+    await flushAllPendingGrams();
     await discardJobs(Array.from(selectedJobIds));
     setSelectedJobIds(new Set());
   };
 
-  const openFailedModal = (job: GcodeJob) => {
-    setFailedModalJob(job);
+  const openFailedModal = async (job: GcodeJob) => {
+    await flushAllPendingGrams();
+    const overrides = editingGrams[job.id];
+    const mergedFilaments = job.filaments.map((f) => ({
+      ...f,
+      grams: overrides?.[f.slotIndex] ?? f.grams,
+    }));
+    const mergedJob: GcodeJob = { ...job, filaments: mergedFilaments };
+    setFailedModalJob(mergedJob);
     setFailedPercent(50);
     const initGrams: Record<number, number> = {};
-    job.filaments.forEach((f) => {
+    mergedJob.filaments.forEach((f) => {
       initGrams[f.slotIndex] = Math.round(f.grams * 0.5 * 10) / 10;
     });
     setFailedCustomGrams(initGrams);
+  };
+
+  const handleQuoteJob = async (job: GcodeJob) => {
+    await flushAllPendingGrams();
+    const overrides = editingGrams[job.id];
+    const mergedFilaments = job.filaments.map((f) => ({
+      ...f,
+      grams: overrides?.[f.slotIndex] ?? f.grams,
+    }));
+    const mergedJob: GcodeJob = {
+      ...job,
+      filaments: mergedFilaments,
+      totalGrams: Math.round(mergedFilaments.reduce((acc, f) => acc + f.grams, 0) * 10) / 10,
+    };
+    openToolsWithDraft({
+      tab: 'quote',
+      source: 'inbox',
+      job: mergedJob,
+      jobName: mergedJob.jobName || mergedJob.filename,
+      printTimeSeconds: mergedJob.printTimeSeconds,
+    });
   };
 
   const confirmFailedPrint = async () => {
@@ -151,7 +229,7 @@ export function InboxView() {
               <div className="flex items-center gap-2">
                 <h1 className="font-display font-extrabold text-lg text-text">Bandeja de laminados</h1>
                 {counts.unreviewed > 0 && (
-                  <span className="px-2 py-0.5 rounded-full text-xs font-mono font-bold bg-accent text-accent-ink animate-pulse">
+                  <span className="px-2 py-0.5 rounded-full text-xs font-mono font-bold bg-accent text-accent-ink">
                     {counts.unreviewed} {counts.unreviewed === 1 ? 'pendiente' : 'pendientes'}
                   </span>
                 )}
@@ -520,7 +598,10 @@ export function InboxView() {
                                                 [slot.slotIndex]: val,
                                               },
                                             }));
-                                            updateJobFilamentGrams(job.id, slot.slotIndex, val);
+                                            scheduleGramsSave(job.id, slot.slotIndex, val);
+                                          }}
+                                          onBlur={() => {
+                                            void flushGramsKey(`${job.id}:${slot.slotIndex}`);
                                           }}
                                           className="w-14 h-6 text-right px-1 rounded bg-surface-1 border border-line text-xs font-mono text-text outline-none focus:border-accent-text"
                                           title="Gramos requeridos para este slot"
@@ -670,7 +751,10 @@ export function InboxView() {
                             <>
                               <button
                                 type="button"
-                                onClick={() => markJobPrinted(job.id)}
+                                onClick={async () => {
+                                  await flushAllPendingGrams();
+                                  await markJobPrinted(job.id);
+                                }}
                                 className="flex-1 lg:w-full h-9 rounded-xl bg-accent text-accent-ink hover:bg-accent-strong text-xs font-bold flex items-center justify-center gap-1.5 shadow-xs transition-all active:scale-95 cursor-pointer"
                               >
                                 <Check size={14} strokeWidth={3} />
@@ -679,7 +763,9 @@ export function InboxView() {
 
                               <button
                                 type="button"
-                                onClick={() => openFailedModal(job)}
+                                onClick={() => {
+                                  void openFailedModal(job);
+                                }}
                                 className="flex-1 lg:w-full h-8 rounded-xl bg-surface-2 hover:bg-surface-3 border border-line text-text text-xs font-medium flex items-center justify-center gap-1 transition-all cursor-pointer"
                               >
                                 <Sliders size={13} />
@@ -688,7 +774,22 @@ export function InboxView() {
 
                               <button
                                 type="button"
-                                onClick={() => discardJob(job.id)}
+                                data-testid="inbox-quote-btn"
+                                onClick={() => {
+                                  void handleQuoteJob(job);
+                                }}
+                                className="flex-1 lg:w-full h-8 rounded-xl bg-surface-2 hover:bg-surface-3 border border-line text-text text-xs font-medium flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+                              >
+                                <Calculator size={13} className="text-accent-text" />
+                                <span>{t('inboxQuoteBtn')}</span>
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={async () => {
+                                  await flushAllPendingGrams();
+                                  await discardJob(job.id);
+                                }}
                                 className="h-8 px-2.5 rounded-xl bg-transparent hover:bg-surface-2 text-muted hover:text-danger text-xs font-medium flex items-center justify-center gap-1 transition-all cursor-pointer"
                                 title="No se imprimió este archivo"
                               >
@@ -700,7 +801,21 @@ export function InboxView() {
                             <div className="flex items-center gap-2">
                               <button
                                 type="button"
-                                onClick={() => markJobPrinted(job.id)}
+                                data-testid="inbox-quote-btn"
+                                onClick={() => {
+                                  void handleQuoteJob(job);
+                                }}
+                                className="px-2.5 py-1 rounded-lg bg-surface-2 hover:bg-surface-3 border border-line text-text text-xs font-medium flex items-center gap-1 transition-all cursor-pointer"
+                              >
+                                <Calculator size={12} className="text-accent-text" />
+                                <span>{t('inboxQuoteBtn')}</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={async () => {
+                                  await flushAllPendingGrams();
+                                  await markJobPrinted(job.id);
+                                }}
                                 className="text-xs text-muted hover:text-text underline cursor-pointer"
                               >
                                 Re-imprimir

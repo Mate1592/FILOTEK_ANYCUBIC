@@ -16,7 +16,9 @@
     "./**/*.ts",
     "../src/shared/**/*.ts",
     "../src/lib/colorMath.ts",
+    "../src/lib/filamentMath.ts",
     "../src/lib/gcodeParser.ts",
+    "../src/lib/printCalculator.ts",
     "../src/lib/roll.ts"
   ]
 }

@@ -1,4 +1,4 @@
-import { contextBridge, ipcRenderer } from 'electron';
+import { contextBridge, ipcRenderer, webUtils } from 'electron';
 import type { FilotecaApi } from '../src/shared/types';
 
 const inv = (ch: string, ...args: unknown[]) => ipcRenderer.invoke(ch, ...args);
@@ -31,6 +31,47 @@ const api: FilotecaApi = {
   file: {
     save: (c, n, f) => inv('file:save', c, n, f),
     open: (f) => inv('file:open', f),
+    openMultiple: async (filters) => {
+      const r = await inv('file:openMultiple', filters);
+      if (Array.isArray(r)) return r;
+      return r?.ok && Array.isArray(r.data) ? r.data : [];
+    },
+    saveTextFile: async (opts) => {
+      const r = await inv('file:saveTextFile', opts);
+      if (r && typeof r === 'object') {
+        if ('data' in r && r.data !== undefined) {
+          return r.ok && r.data
+            ? { ok: true, path: String(r.data) }
+            : { ok: false, error: r.error };
+        }
+        if ('filePath' in r) {
+          return {
+            ok: Boolean(r.ok && r.filePath),
+            path: r.filePath || undefined,
+            error: r.error,
+          };
+        }
+        if ('path' in r) {
+          return {
+            ok: Boolean(r.ok && r.path),
+            path: r.path || undefined,
+            error: r.error,
+          };
+        }
+        return { ok: Boolean(r.ok), error: r.error };
+      }
+      return { ok: false };
+    },
+    getPathForFile: (file: File) => {
+      try {
+        const p = webUtils.getPathForFile(file);
+        if (typeof p === 'string' && p.length > 0) return p;
+      } catch {
+        /* fallback below */
+      }
+      const fallback = (file as unknown as { path?: unknown })?.path;
+      return typeof fallback === 'string' ? fallback : '';
+    },
     selectFolder: () => inv('file:selectFolder'),
     parseGcodePath: (fp) => inv('file:parseGcodePath', fp),
   },

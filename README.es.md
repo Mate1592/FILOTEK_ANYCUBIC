@@ -12,7 +12,7 @@
   <img src="https://img.shields.io/badge/Windows-10%2F11%20x64-0078D6?style=flat-square&logo=windows" alt="Windows 10/11 x64" />
   <img src="https://img.shields.io/badge/Licencia-MIT-green?style=flat-square" alt="MIT License" />
   <img src="https://img.shields.io/badge/100%25-Offline-4CAF50?style=flat-square" alt="100% Offline" />
-  <img src="https://img.shields.io/badge/Versión-v1.1.0-blue?style=flat-square" alt="Version" />
+  <img src="https://img.shields.io/badge/Versión-v2.0.0-blue?style=flat-square" alt="Version" />
 </p>
 
 > Desarrollado por **TermuxX solutions** — Una aplicación de escritorio moderna que transforma las típicas hojas de cálculo de filamento en una estantería 3D interactiva para tu taller. Gestiona tus bobinas visualmente, controla el consumo en tiempo real, recibe alertas de reabastecimiento y sincroniza automáticamente con tu laminador.
@@ -139,6 +139,17 @@ Registra nuevos rollos de filamento rápidamente con chips de marca, paleta de c
 
 ---
 
+## 🛠️ Herramientas de Taller 3D (100% Offline)
+
+Filoteca 2.0 incorpora un conjunto integral de utilidades de taller para potenciar la gestión y rentabilidad de tus impresiones 3D:
+
+- **💰 Cotizador y Calculadora de Costos** — Calcula con precisión el costo real de impresión considerando consumo de filamento (soporte multibobina y purgas), desgaste de máquina, consumo eléctrico (vatios y tarifa kWh configurable), tiempo de operario, margen de riesgo y porcentaje de beneficio. Exporta presupuestos profesionales en texto claro o HTML listos para enviar a tus clientes con cero dependencia de internet.
+- **📦 Inspector de Lotes de Laminado** — Arrastra múltiples archivos `.gcode` o `.3mf` a la vez. Analiza proyectos con múltiples placas, evalúa el consumo acumulado frente al inventario real de bobinas, detecta faltantes de stock antes de imprimir y envía lotes directamente a la Bandeja o al Cotizador.
+- **⚖️ Matemática de Filamento y Estimador por Báscula (Tara)** — Conversión física exacta entre gramos, metros y centímetros cúbicos ($cm^3$) para 12 materiales técnicos (PLA, PETG, ABS, ASA, TPU, Nylon, PC, etc.). Pesa tus bobinas en una báscula convencional y descuenta la tara de carretes vacíos (Bambu, Prusa, eSun, Sunlu, Polymaker, Creality, Anycubic) para registrar el filamento neto restante en un solo clic.
+- **🌡️ Guía Térmica y de Secado** — Consulta inmediata de temperaturas de boquilla, cama caliente, tiempos y grados de secado para evitar problemas de humedad en materiales técnicos.
+
+---
+
 ## ⚙️ Ajustes Completamente Personalizables
 
 Configura tema, idioma, umbrales de alerta, tiempos de reabastecimiento y comportamiento del companion — todo desde un panel de ajustes limpio.
@@ -164,10 +175,10 @@ Tus datos nunca salen de tu computador. Sin cuentas, sin nube, sin internet, sin
 ## 🚀 Descarga Rápida (Sin Instalación)
 
 1. Ve a **[Releases](https://github.com/Mate1592/FILOTEK_ANYCUBIC/releases)**.
-2. Descarga **`Filoteca-Portable-1.1.0.exe`**.
+2. Descarga **`Filoteca-Portable-2.0.0.exe`**.
 3. Doble clic para iniciar — funciona desde tu escritorio o una memoria USB.
 
-*(También hay disponible un instalador clásico `Filoteca Setup 1.1.0.exe` si prefieres accesos directos en el Menú Inicio).*
+*(También hay disponible un instalador clásico `Filoteca Setup 2.0.0.exe` si prefieres accesos directos en el Menú Inicio).*
 
 ---
 

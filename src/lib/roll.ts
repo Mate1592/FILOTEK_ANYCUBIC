@@ -51,6 +51,73 @@ export function hasBackupStock(
   });
 }
 
+const MULTI_ROLL = Symbol('multi');
+
+/**
+ * Versión O(N) de `hasBackupStock` para grandes inventarios: devuelve el conjunto de IDs
+ * de rollos que tienen al menos otro rollo saludable del mismo material y color (nombre o hex).
+ *
+ * Precondición: cada elemento de `rolls` debe poseer un `id` único (garantizado por la clave
+ * primaria de almacenamiento); si se pasan IDs duplicados manualmente, sus entradas se fusionan por `id`.
+ */
+export function computeBackupRollIds(
+  rolls: Roll[],
+  settings: Pick<Settings, 'lowThreshold'>,
+): Set<string> {
+  const byMatThenName = new Map<string, Map<string, string | typeof MULTI_ROLL>>();
+  const byMatThenHex = new Map<string, Map<string, string | typeof MULTI_ROLL>>();
+  const normMats = new Array<string>(rolls.length);
+  const normNames = new Array<string>(rolls.length);
+  const normHexes = new Array<string>(rolls.length);
+
+  for (let i = 0; i < rolls.length; i++) {
+    const r = rolls[i];
+    const mat = r.material.toLowerCase().trim();
+    const cName = r.colorName.toLowerCase().trim();
+    const cHex = r.colorHex.toLowerCase().trim();
+    normMats[i] = mat;
+    normNames[i] = cName;
+    normHexes[i] = cHex;
+
+    if (r.status === 'empty' || r.remainingWeight <= 0.5) continue;
+    if (r.remainingWeight < 150 || pctRemaining(r) < settings.lowThreshold) continue;
+
+    let nameMap = byMatThenName.get(mat);
+    if (!nameMap) {
+      nameMap = new Map();
+      byMatThenName.set(mat, nameMap);
+    }
+    const prevName = nameMap.get(cName);
+    if (prevName === undefined) nameMap.set(cName, r.id);
+    else if (prevName !== MULTI_ROLL && prevName !== r.id) nameMap.set(cName, MULTI_ROLL);
+
+    let hexMap = byMatThenHex.get(mat);
+    if (!hexMap) {
+      hexMap = new Map();
+      byMatThenHex.set(mat, hexMap);
+    }
+    const prevHex = hexMap.get(cHex);
+    if (prevHex === undefined) hexMap.set(cHex, r.id);
+    else if (prevHex !== MULTI_ROLL && prevHex !== r.id) hexMap.set(cHex, MULTI_ROLL);
+  }
+
+  const backedUp = new Set<string>();
+  for (let i = 0; i < rolls.length; i++) {
+    const id = rolls[i].id;
+    const mat = normMats[i];
+    const nameEntry = byMatThenName.get(mat)?.get(normNames[i]);
+    if (nameEntry !== undefined && (nameEntry === MULTI_ROLL || nameEntry !== id)) {
+      backedUp.add(id);
+      continue;
+    }
+    const hexEntry = byMatThenHex.get(mat)?.get(normHexes[i]);
+    if (hexEntry !== undefined && (hexEntry === MULTI_ROLL || hexEntry !== id)) {
+      backedUp.add(id);
+    }
+  }
+  return backedUp;
+}
+
 export const LEVEL_LABEL: Record<StockLevel, string> = {
   ok: 'Bien surtido',
   low: 'Queda poco',
@@ -77,6 +144,34 @@ export const FINISH_LABEL: Record<Finish, string> = {
 const nf0 = new Intl.NumberFormat('es', { maximumFractionDigits: 0 });
 const nf1 = new Intl.NumberFormat('es', { maximumFractionDigits: 1 });
 const nf2 = new Intl.NumberFormat('es', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const nf3Co = new Intl.NumberFormat('es-CO', { minimumFractionDigits: 3, maximumFractionDigits: 3 });
+const dfEs = new Intl.DateTimeFormat('es', { day: 'numeric', month: 'short', year: 'numeric' });
+const currencyFmtCache = new Map<string, Intl.NumberFormat | null>();
+
+function getCurrencyFormatter(
+  currency: string,
+  minDigits: number | undefined,
+  maxDigits: number,
+): Intl.NumberFormat | null {
+  const key = `${currency}:${minDigits ?? 'd'}:${maxDigits}`;
+  if (currencyFmtCache.has(key)) {
+    return currencyFmtCache.get(key) ?? null;
+  }
+  try {
+    const opts: Intl.NumberFormatOptions = {
+      style: 'currency',
+      currency,
+      maximumFractionDigits: maxDigits,
+    };
+    if (minDigits !== undefined) opts.minimumFractionDigits = minDigits;
+    const fmt = new Intl.NumberFormat('es-CO', opts);
+    currencyFmtCache.set(key, fmt);
+    return fmt;
+  } catch {
+    currencyFmtCache.set(key, null);
+    return null;
+  }
+}
 
 export const fmtG = (g: number) => (Math.abs(g) >= 1000 ? `${nf1.format(g / 1000)} kg` : `${nf0.format(g)} g`);
 export const fmtGRaw = (g: number) => nf0.format(g);
@@ -86,61 +181,28 @@ export const fmtNum = (n: number) => nf0.format(n);
 export function fmtMoney(v: number, cur = 'COP') {
   const isCOP = cur === 'COP' || cur === '$';
   if (isCOP) {
-    try {
-      return new Intl.NumberFormat('es-CO', {
-        style: 'currency',
-        currency: 'COP',
-        maximumFractionDigits: 0,
-      }).format(v);
-    } catch {
-      return `$ ${nf0.format(v)}`;
-    }
+    const fmt = getCurrencyFormatter('COP', undefined, 0);
+    return fmt ? fmt.format(v) : `$ ${nf0.format(v)}`;
   }
-  try {
-    const isIsoCode = /^[A-Z]{3}$/.test(cur);
-    if (isIsoCode) {
-      return new Intl.NumberFormat('es-CO', {
-        style: 'currency',
-        currency: cur,
-        maximumFractionDigits: 2,
-      }).format(v);
-    }
-    return `${cur} ${nf2.format(v)}`;
-  } catch {
-    return `${cur} ${nf2.format(v)}`;
+  if (/^[A-Z]{3}$/.test(cur)) {
+    const fmt = getCurrencyFormatter(cur, undefined, 2);
+    if (fmt) return fmt.format(v);
   }
+  return `${cur} ${nf2.format(v)}`;
 }
 
 /** Formatea costo por gramo con 1 decimal en COP ($ 89,9/g) */
 export function fmtCostPerGram(v: number, cur = 'COP') {
   const isCOP = cur === 'COP' || cur === '$';
   if (isCOP) {
-    try {
-      const formatted = new Intl.NumberFormat('es-CO', {
-        style: 'currency',
-        currency: 'COP',
-        minimumFractionDigits: 1,
-        maximumFractionDigits: 1,
-      }).format(v);
-      return `${formatted}/g`;
-    } catch {
-      return `$ ${nf1.format(v)}/g`;
-    }
+    const fmt = getCurrencyFormatter('COP', 1, 1);
+    return fmt ? `${fmt.format(v)}/g` : `$ ${nf1.format(v)}/g`;
   }
-  try {
-    const isIsoCode = /^[A-Z]{3}$/.test(cur);
-    if (isIsoCode) {
-      return `${new Intl.NumberFormat('es-CO', {
-        style: 'currency',
-        currency: cur,
-        minimumFractionDigits: 3,
-        maximumFractionDigits: 3,
-      }).format(v)}/g`;
-    }
-    return `${cur} ${new Intl.NumberFormat('es-CO', { minimumFractionDigits: 3, maximumFractionDigits: 3 }).format(v)}/g`;
-  } catch {
-    return `${cur} ${new Intl.NumberFormat('es-CO', { minimumFractionDigits: 3, maximumFractionDigits: 3 }).format(v)}/g`;
+  if (/^[A-Z]{3}$/.test(cur)) {
+    const fmt = getCurrencyFormatter(cur, 3, 3);
+    if (fmt) return `${fmt.format(v)}/g`;
   }
+  return `${cur} ${nf3Co.format(v)}/g`;
 }
 
 export const fmtMoney4 = fmtCostPerGram;
@@ -168,7 +230,7 @@ export function fmtDate(iso: string | undefined) {
   if (!iso) return '—';
   const d = new Date(iso.length === 10 ? `${iso}T12:00:00` : iso);
   if (Number.isNaN(d.getTime())) return '—';
-  return d.toLocaleDateString('es', { day: 'numeric', month: 'short', year: 'numeric' });
+  return dfEs.format(d);
 }
 
 export function fmtRelative(iso: string) {

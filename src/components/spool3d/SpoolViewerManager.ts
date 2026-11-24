@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { SpoolObject } from './SpoolObject';
+import { shelfPool } from './resources';
 import type { Finish } from '../../shared/types';
 import type { StockLevel } from '../../lib/roll';
 
@@ -10,10 +11,12 @@ export interface SpoolViewItem {
   finish: Finish;
   fraction: number;
   level: StockLevel;
+  animateLayout: boolean;
   spinAngle: number;
   tiltX: number;
   tiltY: number;
   isHovered: boolean;
+  isVisible: boolean;
   spoolObject: SpoolObject;
   /** Último rectángulo dibujado (coordenadas WebGL, px CSS). null = no dibujado. */
   lastRect: ViewRect | null;
@@ -28,13 +31,9 @@ interface ViewRect {
   height: number;
 }
 
-/** Intervalo del pulso de bajo stock (~15 fps): suficiente para un brillo suave. */
-const PULSE_INTERVAL_MS = 66;
-/** Sondeo ligero de cambios de layout (filtros, orden, apertura de paneles). */
-const LAYOUT_POLL_MS = 300;
 /** Duración típica de las transiciones CSS / motion de las tarjetas. */
 const HOVER_SETTLE_MS = 450;
-const LAYOUT_SETTLE_MS = 600;
+const LAYOUT_SETTLE_MS = 480;
 const MAX_DPR = 1.5;
 
 /**
@@ -53,9 +52,9 @@ const sameRect = (a: ViewRect | null, b: ViewRect | null) =>
  * Render BAJO DEMANDA con límite de 30 FPS para animaciones:
  * no existe un bucle permanente. Solo se dibuja cuando algo cambia
  * (scroll, resize, layout, hover, props) o mientras hay una animación activa
- * (giro en hover limitado a 30 fps, pulso de bajo stock a 15 fps). En reposo la GPU queda inactiva.
+ * (giro en hover limitado a 30 fps). En reposo la GPU queda completamente inactiva (0 draws/s).
  *
- * - Redibujado parcial: con preserveDrawingBuffer, una bobina en hover o pulsando
+ * - Redibujado parcial: con preserveDrawingBuffer, una bobina en hover
  *   solo limpia y redibuja su propio rectángulo, no toda la pantalla.
  * - Redibujado completo: solo en scroll/resize/cambios de layout.
  */
@@ -69,16 +68,18 @@ class SpoolViewerManager {
 
   private frameRequested = false;
   private animTimer: ReturnType<typeof setTimeout> | null = null;
-  private pulseTimer: ReturnType<typeof setTimeout> | null = null;
-  private pollTimer: ReturnType<typeof setInterval> | null = null;
   private dirtyAll = true;
   private dirtyItems = new Set<string>();
   private layoutAnimUntil = 0;
   private lastRenderTime = 0;
-  private lastPulseTime = 0;
-  private pulseTime = 0;
   private reduceMotion = false;
   private reduceMotionQuery: MediaQueryList | null = null;
+
+  private intersectionObserver: IntersectionObserver | null = null;
+  private resizeObserver: ResizeObserver | null = null;
+  private elToItem = new WeakMap<Element, SpoolViewItem>();
+  private elToScrollParent = new WeakMap<Element, Element>();
+  private observedContainers = new Map<Element, number>();
 
   constructor() {
     this.scene = new THREE.Scene();
@@ -88,34 +89,17 @@ class SpoolViewerManager {
     this.camera.position.set(0, 0.35, 4.4);
     this.camera.lookAt(0, -0.05, 0);
 
-    // Iluminación de estudio de taller con realce de colores y bordes
-    const ambientLight = new THREE.AmbientLight(0xffffff, 1.8);
-    this.scene.add(ambientLight);
+    // Iluminación de estudio equilibrada de 3 puntos (menor costo de shaders por píxel)
+    const hemiLight = new THREE.HemisphereLight(0xf4f7ff, 0x9aa3b2, 2.1);
+    this.scene.add(hemiLight);
 
-    // Luz principal cenital suave
-    const keyLight = new THREE.DirectionalLight(0xfffaea, 2.4);
-    keyLight.position.set(3, 5, 4);
+    const keyLight = new THREE.DirectionalLight(0xfffaea, 2.7);
+    keyLight.position.set(2.5, 4.2, 4.5);
     this.scene.add(keyLight);
 
-    // Luz de relleno lateral
-    const fillLight = new THREE.DirectionalLight(0xdde8ff, 1.6);
-    fillLight.position.set(-4, 2, -2);
-    this.scene.add(fillLight);
-
-    // Luz de contorno superior / rim para destacar el panal y la curva del filamento
-    const topRimLight = new THREE.DirectionalLight(0xf0f5ff, 1.9);
-    topRimLight.position.set(-2, 4, -3);
-    this.scene.add(topRimLight);
-
-    // Luz de borde inferior
-    const bottomRimLight = new THREE.DirectionalLight(0xffffff, 1.2);
-    bottomRimLight.position.set(0, -3, -3);
-    this.scene.add(bottomRimLight);
-
-    // Luz frontal directa para iluminar el interior de los alvéolos y saturar el color del filamento
-    const frontLight = new THREE.DirectionalLight(0xffffff, 1.3);
-    frontLight.position.set(0.5, 0.8, 4.2);
-    this.scene.add(frontLight);
+    const rimFillLight = new THREE.DirectionalLight(0xdde8ff, 2.1);
+    rimFillLight.position.set(-3.5, 3.0, -2.5);
+    this.scene.add(rimFillLight);
   }
 
   public init() {
@@ -151,6 +135,36 @@ class SpoolViewerManager {
       this.reduceMotion = this.reduceMotionQuery.matches;
       this.reduceMotionQuery.addEventListener('change', this.onReduceMotionChange);
 
+      if (typeof IntersectionObserver !== 'undefined') {
+        this.intersectionObserver = new IntersectionObserver(
+          (entries) => {
+            let needsSchedule = false;
+            for (const entry of entries) {
+              const item = this.elToItem.get(entry.target);
+              if (!item) continue;
+              const wasVisible = item.isVisible;
+              item.isVisible = entry.isIntersecting;
+              if (entry.isIntersecting && (!wasVisible || !item.lastRect)) {
+                this.dirtyItems.add(item.id);
+                needsSchedule = true;
+              } else if (!entry.isIntersecting) {
+                item.lastRect = null;
+              }
+            }
+            if (needsSchedule) this.schedule(false);
+          },
+          { root: null, rootMargin: '80px 0px', threshold: 0 },
+        );
+      }
+
+      if (typeof ResizeObserver !== 'undefined') {
+        this.resizeObserver = new ResizeObserver((entries) => {
+          if (entries.length > 0 && this.items.size > 0) {
+            this.requestFull(120);
+          }
+        });
+      }
+
       window.addEventListener('resize', this.onResize);
       window.addEventListener('scroll', this.onScroll, { capture: true, passive: true });
       document.addEventListener('visibilitychange', this.onVisibilityChange);
@@ -183,7 +197,47 @@ class SpoolViewerManager {
     this.requestFull();
   };
 
+  private observeElement(item: SpoolViewItem, element: HTMLElement) {
+    this.elToItem.set(element, item);
+    this.intersectionObserver?.observe(element);
+    this.resizeObserver?.observe(element);
+
+    const scrollParent = element.closest('.overflow-y-auto');
+    if (scrollParent) {
+      this.elToScrollParent.set(element, scrollParent);
+      const count = this.observedContainers.get(scrollParent) ?? 0;
+      this.observedContainers.set(scrollParent, count + 1);
+      if (count === 0) {
+        this.resizeObserver?.observe(scrollParent);
+      }
+    }
+  }
+
+  private unobserveElement(element: HTMLElement) {
+    this.intersectionObserver?.unobserve(element);
+    this.resizeObserver?.unobserve(element);
+    this.elToItem.delete(element);
+
+    const scrollParent = this.elToScrollParent.get(element) ?? element.closest('.overflow-y-auto');
+    this.elToScrollParent.delete(element);
+    if (scrollParent) {
+      const count = this.observedContainers.get(scrollParent);
+      if (count === undefined) return;
+      if (count <= 1) {
+        this.observedContainers.delete(scrollParent);
+        this.resizeObserver?.unobserve(scrollParent);
+      } else {
+        this.observedContainers.set(scrollParent, count - 1);
+      }
+    }
+  }
+
   // ------------------------------------------------------------------ API pública
+
+  public notifyLayout(holdMs = 120) {
+    if (!this.renderer || this.items.size === 0) return;
+    this.requestFull(holdMs);
+  }
 
   public register(
     id: string,
@@ -192,6 +246,7 @@ class SpoolViewerManager {
     finish: Finish,
     fraction: number,
     level: StockLevel,
+    animateLayout = true,
   ): SpoolViewItem {
     this.init();
 
@@ -204,48 +259,65 @@ class SpoolViewerManager {
         finish,
         fraction,
         level,
+        animateLayout,
         spinAngle: 0,
         tiltX: 0,
         tiltY: 0,
         isHovered: false,
-        spoolObject: new SpoolObject(),
+        isVisible: true,
+        spoolObject: new SpoolObject(shelfPool),
         lastRect: null,
         animUntil: 0,
       };
       this.items.set(id, item);
+      this.observeElement(item, element);
     } else {
-      item.element = element;
+      if (item.element !== element) {
+        this.unobserveElement(item.element);
+        item.element = element;
+        this.observeElement(item, element);
+      }
       item.colorHex = colorHex;
       item.finish = finish;
       item.fraction = fraction;
       item.level = level;
+      item.animateLayout = animateLayout;
+      item.isVisible = true;
     }
 
     if (this.canvas) this.canvas.style.display = 'block';
-    this.startLayoutPoll();
-    // Las tarjetas entran con animación de layout: mantener redibujado completo un momento.
-    this.requestFull(LAYOUT_SETTLE_MS + 400);
+    this.dirtyItems.add(id);
+    if (animateLayout && this.items.size <= 60) {
+      // Listas pequeñas usan transición de entrada Framer Motion
+      this.requestFull(LAYOUT_SETTLE_MS);
+    } else {
+      this.schedule(false);
+    }
     return item;
   }
 
   public updateItem(
     id: string,
-    props: Partial<Pick<SpoolViewItem, 'colorHex' | 'finish' | 'fraction' | 'level' | 'tiltX' | 'tiltY' | 'isHovered' | 'spinAngle'>>,
+    props: Partial<Pick<SpoolViewItem, 'colorHex' | 'finish' | 'fraction' | 'level' | 'tiltX' | 'tiltY' | 'isHovered' | 'spinAngle' | 'animateLayout'>>,
   ) {
     const item = this.items.get(id);
     if (!item) return;
 
     let changed = false;
+    let visualChanged = false;
     for (const key of Object.keys(props) as (keyof typeof props)[]) {
       if (item[key] !== props[key]) {
         changed = true;
-        break;
+        if (key !== 'animateLayout') {
+          visualChanged = true;
+        }
       }
     }
     if (!changed) return;
 
     const hoverChanged = props.isHovered !== undefined && props.isHovered !== item.isHovered;
     Object.assign(item, props);
+    if (!visualChanged) return;
 
     // Solo si el hover cambia de estado extendemos el settle time de transiciones CSS
     if (hoverChanged) {
@@ -257,16 +329,23 @@ class SpoolViewerManager {
 
   public unregister(id: string) {
     const item = this.items.get(id);
+    const wasAnimated = item?.animateLayout ?? true;
     if (item) {
+      this.unobserveElement(item.element);
+      if (item.lastRect && this.renderer && !this.dirtyAll) {
+        this.clearRect(item.lastRect);
+      }
       item.spoolObject.dispose();
       this.items.delete(id);
       this.dirtyItems.delete(id);
     }
     if (this.items.size === 0) {
       this.shutdown();
-    } else {
-      // Al desaparecer una tarjeta, el resto se reacomoda (layout animation).
+    } else if (wasAnimated && this.items.size <= 60) {
+      // Al desaparecer una tarjeta en listas con animación de layout, el resto se reacomoda.
       this.requestFull(LAYOUT_SETTLE_MS);
+    } else {
+      this.requestFull(0);
     }
   }
 
@@ -316,49 +395,13 @@ class SpoolViewerManager {
     }
   }
 
-  private schedulePulse(delay: number) {
-    if (this.pulseTimer !== null) return;
-    this.pulseTimer = setTimeout(() => {
-      this.pulseTimer = null;
-      this.schedule(true);
-    }, Math.max(0, delay));
-  }
-
-  /** Sondeo de baja frecuencia para detectar cambios de posición sin re-render de React (filtros, paneles). */
-  private startLayoutPoll() {
-    if (this.pollTimer !== null) return;
-    this.pollTimer = setInterval(() => {
-      if (document.hidden || this.items.size === 0 || this.frameRequested) return;
-      const winH = window.innerHeight;
-      const winW = window.innerWidth;
-      for (const item of this.items.values()) {
-        if (!item.element.isConnected) {
-          this.requestFull(LAYOUT_SETTLE_MS);
-          return;
-        }
-        const rect = this.computeRect(item, winW, winH);
-        if (!sameRect(rect, item.lastRect) && (rect || item.lastRect)) {
-          this.requestFull(LAYOUT_SETTLE_MS);
-          return;
-        }
-      }
-    }, LAYOUT_POLL_MS);
-  }
-
   private shutdown() {
-    if (this.pollTimer !== null) {
-      clearInterval(this.pollTimer);
-      this.pollTimer = null;
-    }
-    if (this.pulseTimer !== null) {
-      clearTimeout(this.pulseTimer);
-      this.pulseTimer = null;
-    }
     if (this.animTimer !== null) {
       clearTimeout(this.animTimer);
       this.animTimer = null;
     }
     this.lastRenderTime = 0;
+    this.layoutAnimUntil = 0;
     if (this.renderer && this.canvas) {
       const winW = window.innerWidth;
       const winH = window.innerHeight;
@@ -397,7 +440,7 @@ class SpoolViewerManager {
     this.renderer!.clear();
   }
 
-  private drawItem(item: SpoolViewItem, rect: ViewRect, pulse: number) {
+  private drawItem(item: SpoolViewItem, rect: ViewRect) {
     item.spoolObject.update(
       item.colorHex,
       item.finish,
@@ -406,7 +449,7 @@ class SpoolViewerManager {
       item.spinAngle,
       item.tiltX,
       item.tiltY,
-      pulse,
+      1.0,
     );
 
     this.camera.aspect = rect.width / rect.height;
@@ -432,6 +475,7 @@ class SpoolViewerManager {
     // Limpia elementos desmontados del DOM
     for (const [id, item] of this.items) {
       if (!item.element.isConnected) {
+        this.unobserveElement(item.element);
         item.spoolObject.dispose();
         this.items.delete(id);
         this.dirtyItems.delete(id);
@@ -451,16 +495,7 @@ class SpoolViewerManager {
     const layoutAnimating = now < this.layoutAnimUntil;
     const full = this.dirtyAll || layoutAnimating;
 
-    // Pulso de bajo stock (limitado a ~15 fps)
-    const pulseDue = !this.reduceMotion && now - this.lastPulseTime >= PULSE_INTERVAL_MS - 6;
-    if (pulseDue) {
-      this.pulseTime += 0.04 * ((now - (this.lastPulseTime || now - PULSE_INTERVAL_MS)) / 16.7);
-      this.lastPulseTime = now;
-    }
-    const pulse = this.reduceMotion ? 1 : 0.5 + 0.5 * Math.sin(this.pulseTime * 3);
-
     let hasContinuous = false; // giro en hover o transición en curso
-    let hasPulse = false;
 
     if (full) {
       const r = this.renderer;
@@ -470,14 +505,17 @@ class SpoolViewerManager {
     }
 
     for (const item of this.items.values()) {
+      if (!item.isVisible) {
+        item.lastRect = null;
+        continue;
+      }
+
       const spinning = item.isHovered && !this.reduceMotion;
       const settling = now < item.animUntil;
-      const pulsing = item.level === 'low' || item.level === 'critical';
 
       if (spinning) item.spinAngle += 0.018 * (dt / 16.7);
 
-      const needsDraw =
-        full || spinning || settling || this.dirtyItems.has(item.id) || (pulsing && pulseDue && !this.reduceMotion);
+      const needsDraw = full || spinning || settling || this.dirtyItems.has(item.id);
       if (!needsDraw) continue;
 
       const rect = this.computeRect(item, winW, winH);
@@ -493,19 +531,9 @@ class SpoolViewerManager {
       }
 
       if (!full) this.clearRect(rect);
-      this.drawItem(item, rect, pulse);
+      this.drawItem(item, rect);
 
       if (spinning || settling) hasContinuous = true;
-    }
-
-    // ¿Queda alguna bobina visible con pulso de bajo stock? (independiente de si se dibujó en este frame)
-    if (!this.reduceMotion) {
-      for (const item of this.items.values()) {
-        if (item.lastRect && (item.level === 'low' || item.level === 'critical')) {
-          hasPulse = true;
-          break;
-        }
-      }
     }
 
     this.dirtyAll = false;
@@ -513,9 +541,6 @@ class SpoolViewerManager {
 
     if (layoutAnimating || hasContinuous) {
       this.schedule(false);
-    } else if (hasPulse) {
-      this.lastRenderTime = 0;
-      this.schedulePulse(PULSE_INTERVAL_MS - (performance.now() - this.lastPulseTime));
     } else {
       // Reposo total: sin frames pendientes, la GPU queda libre.
       this.lastRenderTime = 0;

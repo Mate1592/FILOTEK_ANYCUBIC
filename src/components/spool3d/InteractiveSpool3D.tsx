@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import { SpoolObject } from './SpoolObject';
+import { createSpoolResourcePool } from './resources';
 import type { Finish } from '../../shared/types';
 import type { StockLevel } from '../../lib/roll';
 
@@ -20,6 +21,7 @@ export function InteractiveSpool3D({
   className = '',
 }: InteractiveSpool3DProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const propsRef = useRef({ color, finish, fraction, level });
   const isDraggingRef = useRef(false);
   const lastMouseRef = useRef({ x: 0, y: 0 });
   const rotVelRef = useRef({ x: 0, y: 0 });
@@ -50,33 +52,31 @@ export function InteractiveSpool3D({
     camera.position.set(0, 0.25, 4.3);
     camera.lookAt(0, -0.05, 0);
 
-    // Luces de taller calibradas para modo oscuro y claro
-    scene.add(new THREE.AmbientLight(0xffffff, 1.8));
-    const keyLight = new THREE.DirectionalLight(0xfffaea, 2.4);
-    keyLight.position.set(3, 5, 4);
-    scene.add(keyLight);
-    const fillLight = new THREE.DirectionalLight(0xdde8ff, 1.6);
-    fillLight.position.set(-4, 2, -2);
-    scene.add(fillLight);
-    const topRimLight = new THREE.DirectionalLight(0xf0f5ff, 1.9);
-    topRimLight.position.set(-2, 4, -3);
-    scene.add(topRimLight);
-    const rimLight = new THREE.DirectionalLight(0xffffff, 1.2);
-    rimLight.position.set(0, -3, -3);
-    scene.add(rimLight);
-    const frontLight = new THREE.DirectionalLight(0xffffff, 1.3);
-    frontLight.position.set(0.5, 0.8, 4.2);
-    scene.add(frontLight);
+    // Iluminación de estudio equilibrada de 3 puntos
+    const hemiLight = new THREE.HemisphereLight(0xf4f7ff, 0x9aa3b2, 2.1);
+    scene.add(hemiLight);
 
-    const spool = new SpoolObject();
+    const keyLight = new THREE.DirectionalLight(0xfffaea, 2.7);
+    keyLight.position.set(2.5, 4.2, 4.5);
+    scene.add(keyLight);
+
+    const rimFillLight = new THREE.DirectionalLight(0xdde8ff, 2.1);
+    rimFillLight.position.set(-3.5, 3.0, -2.5);
+    scene.add(rimFillLight);
+
+    // Pool aislado para este WebGLRenderer (evita fugas de listeners 'dispose' con ShelfView)
+    const pool = createSpoolResourcePool({ maxFilamentMaterials: 24 });
+    const spool = new SpoolObject(pool);
     scene.add(spool);
 
     let running = true;
     let frameRequested = false;
-    let pulseTimer: ReturnType<typeof setTimeout> | null = null;
-    let pulseTime = 0;
-    const isPulsing = level === 'low' || level === 'critical';
-    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    let rafId = 0;
+
+    const TARGET_FPS = 30;
+    const FRAME_MS = 1000 / TARGET_FPS;
+    let lastRenderTime = 0;
+    let animTimeout: ReturnType<typeof setTimeout> | null = null;
 
     const resize = () => {
       const rect = canvas.getBoundingClientRect();
@@ -88,21 +88,15 @@ export function InteractiveSpool3D({
       invalidate();
     };
 
-    const TARGET_FPS = 30;
-    const FRAME_MS = 1000 / TARGET_FPS;
-    let lastRenderTime = 0;
-    let animTimeout: ReturnType<typeof setTimeout> | null = null;
-
     const renderFrame = () => {
       frameRequested = false;
+      rafId = 0;
       if (animTimeout !== null) {
         clearTimeout(animTimeout);
         animTimeout = null;
       }
       if (!running) return;
       lastRenderTime = performance.now();
-
-      const pulse = isPulsing && !reduceMotion ? 0.5 + 0.5 * Math.sin(pulseTime * 3) : 1;
 
       // Inercia si no se está arrastrando
       if (!isDraggingRef.current) {
@@ -114,22 +108,17 @@ export function InteractiveSpool3D({
         if (Math.abs(rotVelRef.current.y) < 1e-4) rotVelRef.current.y = 0;
       }
 
-      // Actualizar el spool con los ángulos interactivos
+      // Actualizar el spool in-place con los props y ángulos actuales
+      const { color: c, finish: f, fraction: fr, level: lv } = propsRef.current;
       spool.baseRotX = rotCurrentRef.current.x;
       spool.baseRotY = rotCurrentRef.current.y;
-      spool.update(color, finish, fraction, level, 0, 0, 0, pulse);
+      spool.update(c, f, fr, lv, 0, 0, 0, 1.0);
       renderer.render(scene, camera);
 
-      // Render bajo demanda: continuar solo mientras haya movimiento
+      // Render bajo demanda: continuar solo mientras haya movimiento por inercia
       const moving = !isDraggingRef.current && (rotVelRef.current.x !== 0 || rotVelRef.current.y !== 0);
       if (moving) {
         invalidate(false);
-      } else if (isPulsing && !reduceMotion && pulseTimer === null) {
-        pulseTimer = setTimeout(() => {
-          pulseTimer = null;
-          pulseTime += 0.16;
-          invalidate(true);
-        }, 66);
       }
     };
 
@@ -142,7 +131,7 @@ export function InteractiveSpool3D({
         }
         if (!frameRequested) {
           frameRequested = true;
-          requestAnimationFrame(renderFrame);
+          rafId = requestAnimationFrame(renderFrame);
         }
         return;
       }
@@ -156,28 +145,42 @@ export function InteractiveSpool3D({
           animTimeout = null;
           if (!running || frameRequested) return;
           frameRequested = true;
-          requestAnimationFrame(renderFrame);
+          rafId = requestAnimationFrame(renderFrame);
         }, remaining);
       } else {
         frameRequested = true;
-        requestAnimationFrame(renderFrame);
+        rafId = requestAnimationFrame(renderFrame);
       }
     }
 
     invalidateRef.current = invalidate;
     resize();
+
+    let resizeObserver: ResizeObserver | null = null;
+    if (typeof ResizeObserver !== 'undefined') {
+      resizeObserver = new ResizeObserver(resize);
+      resizeObserver.observe(canvas);
+    }
     window.addEventListener('resize', resize);
     invalidate(true);
 
     return () => {
       running = false;
       invalidateRef.current = () => {};
-      if (pulseTimer !== null) clearTimeout(pulseTimer);
+      if (rafId) cancelAnimationFrame(rafId);
       if (animTimeout !== null) clearTimeout(animTimeout);
+      resizeObserver?.disconnect();
       window.removeEventListener('resize', resize);
       spool.dispose();
+      pool.dispose();
       renderer.dispose();
     };
+  }, []);
+
+  // Actualizar apariencia del carrete in-place sin recrear el WebGLRenderer
+  useEffect(() => {
+    propsRef.current = { color, finish, fraction, level };
+    invalidateRef.current(false);
   }, [color, finish, fraction, level]);
 
   const handlePointerDown = (e: React.PointerEvent) => {

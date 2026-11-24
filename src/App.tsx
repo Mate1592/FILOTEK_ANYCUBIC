@@ -1,24 +1,34 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { Suspense, lazy, useEffect, useState, useRef } from 'react';
 import { useStore, useSelectedRoll } from './store/useStore';
 import { TitleBar } from './components/layout/TitleBar';
 import { ShelfView } from './components/shelf/ShelfView';
-import { StatsView } from './components/stats/StatsView';
-import { ReplenishmentView } from './components/replenishment/ReplenishmentView';
-import { ShoppingView } from './components/shopping/ShoppingView';
-import { SettingsView } from './components/settings/SettingsView';
-import { RollDetailModal } from './components/spool/RollDetailModal';
-import { RollEditorModal } from './components/spool/RollEditorModal';
 import { QuickUseModal } from './components/spool/QuickUseModal';
-import { InboxView } from './components/inbox/InboxView';
 import { CompanionPromptModal } from './components/inbox/CompanionPromptModal';
 import { OnboardingModal } from './components/onboarding/OnboardingModal';
 import { Toasts } from './components/layout/Toasts';
-import { api, isDesktop } from './lib/api';
+import { api } from './lib/api';
 import type { GcodeJob, Roll } from './shared/types';
 import { parseGcodeText } from './lib/gcodeParser';
 import { groupInventoryForReplenishment } from './lib/replenishment';
 import { fmtDate } from './lib/roll';
 import { AlertCircle, RefreshCw, Printer } from 'lucide-react';
+
+const StatsView = lazy(() => import('./components/stats/StatsView').then((m) => ({ default: m.StatsView })));
+const ReplenishmentView = lazy(() => import('./components/replenishment/ReplenishmentView').then((m) => ({ default: m.ReplenishmentView })));
+const ShoppingView = lazy(() => import('./components/shopping/ShoppingView').then((m) => ({ default: m.ShoppingView })));
+const InboxView = lazy(() => import('./components/inbox/InboxView').then((m) => ({ default: m.InboxView })));
+const ToolsView = lazy(() => import('./components/tools/ToolsView').then((m) => ({ default: m.ToolsView })));
+const SettingsView = lazy(() => import('./components/settings/SettingsView').then((m) => ({ default: m.SettingsView })));
+const RollDetailModal = lazy(() => import('./components/spool/RollDetailModal').then((m) => ({ default: m.RollDetailModal })));
+const RollEditorModal = lazy(() => import('./components/spool/RollEditorModal').then((m) => ({ default: m.RollEditorModal })));
+
+function ViewLoadingFallback() {
+  return (
+    <div className="flex-1 flex items-center justify-center bg-bg text-muted">
+      <div className="w-6 h-6 rounded-full border-2 border-line border-t-accent-text animate-spin" />
+    </div>
+  );
+}
 
 export function App() {
   const loaded = useStore((s) => s.loaded);
@@ -26,6 +36,8 @@ export function App() {
   const load = useStore((s) => s.load);
   const view = useStore((s) => s.view);
   const setView = useStore((s) => s.setView);
+  const toolsTab = useStore((s) => s.toolsTab);
+  const openToolsWithDraft = useStore((s) => s.openToolsWithDraft);
   const selectedRoll = useSelectedRoll();
   const select = useStore((s) => s.select);
   const editor = useStore((s) => s.editor);
@@ -36,7 +48,7 @@ export function App() {
   const usage = useStore((s) => s.usage);
   const orders = useStore((s) => s.orders);
   const upsertGcodeJob = useStore((s) => s.upsertGcodeJob);
-  const applyGcodeJob = useStore((s) => s.applyGcodeJob);
+  const upsertGcodeJobs = useStore((s) => s.upsertGcodeJobs);
   const toast = useStore((s) => s.toast);
 
   const [quickUseRoll, setQuickUseRoll] = useState<Roll | null>(null);
@@ -52,6 +64,12 @@ export function App() {
   useEffect(() => {
     load();
   }, [load]);
+
+  // Native tray sync on startup & setting changes
+  useEffect(() => {
+    if (!loaded) return;
+    api.win.setTray(!!settings.trayEnabled, !!settings.closeToTray);
+  }, [loaded, settings.trayEnabled, settings.closeToTray]);
 
   // Theme synchronization
   useEffect(() => {
@@ -199,48 +217,149 @@ export function App() {
 
     const files = Array.from(e.dataTransfer.files);
     if (!files.length) return;
-    const file = files[0];
-    const name = file.name.toLowerCase();
-    if (!name.endsWith('.gcode') && !name.endsWith('.3mf')) {
+
+    const validFiles = files.filter((file) => {
+      const lower = file.name.toLowerCase();
+      return lower.endsWith('.gcode') || lower.endsWith('.3mf');
+    });
+
+    if (validFiles.length === 0) {
       toast({
         kind: 'warn',
         title: 'Archivo no compatible',
-        body: 'Arrastra un archivo .gcode o .3mf generado por tu laminador.',
+        body: 'Arrastra archivos .gcode o .3mf generados por tu laminador.',
       });
       return;
     }
 
-    try {
-      let parsedJob: GcodeJob | null = null;
-      const filePath = (file as any).path;
+    const parseDroppedFile = async (file: File, filePath: string): Promise<GcodeJob | null> => {
       if (filePath) {
         const res = await api.file.parseGcodePath(filePath);
-        if (res.ok && res.data) {
-          parsedJob = res.data;
-        }
+        if (res.ok && res.data) return res.data;
       }
-      if (!parsedJob && name.endsWith('.gcode')) {
+      if (file.name.toLowerCase().endsWith('.gcode')) {
         const text = await file.text();
-        parsedJob = parseGcodeText(text, file.name, '', rolls);
+        return parseGcodeText(text, file.name, '', rolls, settings.rememberedMappings);
+      }
+      return null;
+    };
+
+    try {
+      if (view === 'tools') {
+        if (validFiles.length === 1 && toolsTab === 'quote') {
+          const file = validFiles[0];
+          const filePath = api.file.getPathForFile(file);
+          const parsedJob = await parseDroppedFile(file, filePath);
+          if (parsedJob) {
+            openToolsWithDraft({
+              tab: 'quote',
+              source: 'drop',
+              job: parsedJob,
+              jobName: parsedJob.jobName || parsedJob.filename,
+              printTimeSeconds: parsedJob.printTimeSeconds,
+            });
+          } else {
+            toast({
+              kind: 'error',
+              title: 'Error al procesar archivo',
+              body: 'No se encontraron datos de consumo o peso en el archivo.',
+            });
+          }
+          return;
+        }
+
+        const filePaths: string[] = [];
+        const batchJobs: GcodeJob[] = [];
+        for (const file of validFiles) {
+          const fp = api.file.getPathForFile(file);
+          if (fp) {
+            filePaths.push(fp);
+          } else if (file.name.toLowerCase().endsWith('.gcode')) {
+            const text = await file.text();
+            const parsed = parseGcodeText(text, file.name, '', rolls, settings.rememberedMappings);
+            if (parsed) batchJobs.push(parsed);
+          }
+        }
+
+        if (filePaths.length === 0 && batchJobs.length === 0) {
+          toast({
+            kind: 'error',
+            title: 'Error al procesar archivo',
+            body: 'No se pudieron leer los archivos arrastrados.',
+          });
+          return;
+        }
+
+        openToolsWithDraft({
+          tab: 'batch',
+          source: 'drop',
+          filePaths,
+          batchJobs,
+        });
+        return;
       }
 
-      if (parsedJob) {
-        await upsertGcodeJob(parsedJob);
+      if (validFiles.length === 1) {
+        const file = validFiles[0];
+        const filePath = api.file.getPathForFile(file);
+        const parsedJob = await parseDroppedFile(file, filePath);
+        if (parsedJob) {
+          await upsertGcodeJob(parsedJob);
+          toast({
+            kind: 'success',
+            title: 'Archivo añadido a la Bandeja',
+            body: `"${parsedJob.jobName || parsedJob.filename}" listo para revisar.`,
+            action: {
+              label: 'Ver Bandeja',
+              run: () => setView('inbox'),
+            },
+          });
+          setView('inbox');
+        } else {
+          toast({
+            kind: 'error',
+            title: 'Error al procesar archivo',
+            body: 'No se encontraron datos de consumo o peso en el archivo.',
+          });
+        }
+        return;
+      }
+
+      const parsedJobs: GcodeJob[] = [];
+      for (const file of validFiles) {
+        const filePath = api.file.getPathForFile(file);
+        const parsed = await parseDroppedFile(file, filePath);
+        if (parsed) {
+          if (parsed.plates && parsed.plates.length > 0) {
+            parsedJobs.push(...parsed.plates);
+          } else {
+            parsedJobs.push(parsed);
+          }
+        }
+      }
+
+      if (parsedJobs.length > 0) {
+        await upsertGcodeJobs(parsedJobs);
         toast({
           kind: 'success',
-          title: 'Archivo añadido a la Bandeja',
-          body: `"${parsedJob.jobName || parsedJob.filename}" listo para revisar.`,
+          title: `${parsedJobs.length} trabajos añadidos a la Bandeja`,
+          body: 'Listos para revisar o inspeccionar por lotes.',
           action: {
-            label: 'Ver Bandeja',
-            run: () => setView('inbox'),
+            label: 'Abrir en Lotes',
+            run: () =>
+              openToolsWithDraft({
+                tab: 'batch',
+                source: 'drop',
+                batchJobs: parsedJobs,
+              }),
           },
         });
         setView('inbox');
       } else {
         toast({
           kind: 'error',
-          title: 'Error al procesar archivo',
-          body: 'No se encontraron datos de consumo o peso en el archivo.',
+          title: 'Error al procesar archivos',
+          body: 'No se encontraron datos de consumo o peso en los archivos arrastrados.',
         });
       }
     } catch (err) {
@@ -295,11 +414,16 @@ export function App() {
 
       <main className="flex-1 overflow-hidden relative flex flex-col">
         {view === 'shelf' && <ShelfView />}
-        {view === 'stats' && <StatsView />}
-        {view === 'replenish' && <ReplenishmentView />}
-        {view === 'shopping' && <ShoppingView />}
-        {view === 'inbox' && <InboxView />}
-        {view === 'settings' && <SettingsView />}
+        {view !== 'shelf' && (
+          <Suspense fallback={<ViewLoadingFallback />}>
+            {view === 'stats' && <StatsView />}
+            {view === 'replenish' && <ReplenishmentView />}
+            {view === 'shopping' && <ShoppingView />}
+            {view === 'inbox' && <InboxView />}
+            {view === 'tools' && <ToolsView />}
+            {view === 'settings' && <SettingsView />}
+          </Suspense>
+        )}
       </main>
 
       {/* Drag & Drop Overlay */}
@@ -320,18 +444,20 @@ export function App() {
       )}
 
       {/* Modals & Dialogs */}
-      {selectedRoll && (
-        <RollDetailModal
-          roll={selectedRoll}
-          onClose={() => select(null)}
-          onOpenQuickUse={(r) => {
-            select(null);
-            setQuickUseRoll(r);
-          }}
-        />
-      )}
+      <Suspense fallback={null}>
+        {selectedRoll && (
+          <RollDetailModal
+            roll={selectedRoll}
+            onClose={() => select(null)}
+            onOpenQuickUse={(r) => {
+              select(null);
+              setQuickUseRoll(r);
+            }}
+          />
+        )}
 
-      {editor && <RollEditorModal />}
+        {editor && <RollEditorModal />}
+      </Suspense>
 
       {quickUseRoll && (
         <QuickUseModal

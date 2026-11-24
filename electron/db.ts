@@ -49,7 +49,9 @@ export class FilotecaDb {
     const wasmPath = require.resolve('sql.js/dist/sql-wasm.wasm');
     const wasmBinary = fs.readFileSync(wasmPath);
     this.SQL = await initSqlJs({ wasmBinary: wasmBinary.buffer.slice(wasmBinary.byteOffset, wasmBinary.byteOffset + wasmBinary.byteLength) as ArrayBuffer });
-    if (fs.existsSync(this.file)) {
+    const dbExists = fs.existsSync(this.file);
+    let needsFlush = !dbExists;
+    if (dbExists) {
       try {
         this.db = new this.SQL.Database(fs.readFileSync(this.file));
         this.db.exec('SELECT count(*) FROM sqlite_master');
@@ -59,23 +61,40 @@ export class FilotecaDb {
         fs.renameSync(this.file, broken);
         console.error('[db] BD corrupta, movida a', broken, err);
         this.db = new this.SQL.Database();
+        needsFlush = true;
       }
     } else {
       this.db = new this.SQL.Database();
     }
+    let prevSchema = 0;
+    if (!needsFlush) {
+      try {
+        const rows = this.all<{ value: string }>('SELECT value FROM meta WHERE key = ?', ['schema']);
+        prevSchema = rows[0] ? Number(rows[0].value) || 0 : 0;
+      } catch {
+        prevSchema = 0;
+      }
+    }
     this.db.exec(SCHEMA);
     try {
       this.db.exec("ALTER TABLE usage ADD COLUMN origin TEXT DEFAULT 'manual'");
+      needsFlush = true;
     } catch {
       /* columna ya existe */
     }
     try {
       this.db.exec("ALTER TABLE usage ADD COLUMN job_name TEXT DEFAULT ''");
+      needsFlush = true;
     } catch {
       /* columna ya existe */
     }
-    this.db.run('INSERT OR REPLACE INTO meta(key,value) VALUES (?,?)', ['schema', String(SCHEMA_VERSION)]);
-    this.flushNow();
+    if (needsFlush || prevSchema < SCHEMA_VERSION) {
+      this.db.run('INSERT OR REPLACE INTO meta(key,value) VALUES (?,?)', ['schema', String(SCHEMA_VERSION)]);
+      needsFlush = true;
+    }
+    if (needsFlush) {
+      this.flushNow();
+    }
   }
 
   // ---------- persistencia ----------
@@ -117,6 +136,33 @@ export class FilotecaDb {
   }
 
   // ---------- lectura ----------
+  getSettings(): Partial<Settings> {
+    const settings: Partial<Settings> = {};
+    for (const s of this.all<{ key: string; value: string }>('SELECT key, value FROM settings')) {
+      try {
+        (settings as Record<string, unknown>)[s.key] = JSON.parse(s.value);
+      } catch {
+        /* ignorar valor corrupto */
+      }
+    }
+    return settings;
+  }
+
+  countUnreviewedGcodeJobs(): number {
+    const rows = this.all<{ cnt: number }>(`
+      SELECT COUNT(*) AS cnt
+      FROM gcode_jobs
+      WHERE json_valid(data) = 1
+        AND COALESCE(json_extract(data, '$.status'), 'unreviewed') = 'unreviewed'
+        AND NOT (
+          json_extract(data, '$.totalLayersCount') = 0
+          AND json_extract(data, '$.printTimeSeconds') = 0
+          AND COALESCE(json_extract(data, '$.thumbnailSmallPath'), '') = ''
+        )
+    `);
+    return Number(rows[0]?.cnt ?? 0);
+  }
+
   load(): DbSnapshot {
     const rolls = this.all<{ data: string }>('SELECT data FROM rolls').map((r) => JSON.parse(r.data) as Roll);
     const usage = this.all<{ id: string; roll_id: string; grams: number; at: string; note: string; origin?: string; job_name?: string }>(
@@ -139,14 +185,7 @@ export class FilotecaDb {
     const gcodeJobs = this.all<{ data: string }>('SELECT data FROM gcode_jobs')
       .map((r) => JSON.parse(r.data) as GcodeJob)
       .filter((j) => !(j.totalLayersCount === 0 && j.printTimeSeconds === 0 && !j.thumbnailSmallPath));
-    const settings: Partial<Settings> = {};
-    for (const s of this.all<{ key: string; value: string }>('SELECT key, value FROM settings')) {
-      try {
-        (settings as Record<string, unknown>)[s.key] = JSON.parse(s.value);
-      } catch {
-        /* ignorar valor corrupto */
-      }
-    }
+    const settings = this.getSettings();
     return { rolls, usage, shopping, orders, gcodeJobs, settings };
   }
 

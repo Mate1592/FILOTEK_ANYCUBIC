@@ -12,7 +12,7 @@
   <img src="https://img.shields.io/badge/Windows-10%2F11%20x64-0078D6?style=flat-square&logo=windows" alt="Windows 10/11 x64" />
   <img src="https://img.shields.io/badge/License-MIT-green?style=flat-square" alt="MIT License" />
   <img src="https://img.shields.io/badge/100%25-Offline-4CAF50?style=flat-square" alt="100% Offline" />
-  <img src="https://img.shields.io/badge/Version-v1.1.0-blue?style=flat-square" alt="Version" />
+  <img src="https://img.shields.io/badge/Version-v2.0.0-blue?style=flat-square" alt="Version" />
 </p>
 
 > Developed by **TermuxX solutions** — A modern desktop app that turns boring filament spreadsheets into an interactive 3D workshop shelf. Manage spools visually, track consumption in real time, get smart restock alerts, and connect seamlessly with your slicer.
@@ -139,6 +139,17 @@ Quickly register new filament rolls with brand quick-pick chips, hex color palet
 
 ---
 
+## 🛠️ Offline 3D Workshop Tools
+
+Filoteca 2.0 introduces a dedicated suite of offline workshop utilities to streamline your 3D printing business and daily operations:
+
+- **💰 Print Cost & Quoting Calculator** — Compute exact filament costs (multi-spool support and purge waste), machine wear, electricity consumption (customizable wattage and kWh rates), labor time, failure risk margin, and profit markups. Export client-ready professional estimates in text or formatted HTML with zero internet dependency.
+- **📦 Slicer Batch Inspector** — Drag and drop dozens of `.gcode` or `.3mf` files at once. Inspect multi-plate runs, verify cumulative filament usage against your live spool inventory, detect stock shortages before starting long print jobs, and send batch jobs directly to your companion tray or quote calculator.
+- **⚖️ Physical Filament Math & Tare Scale Estimator** — Accurate physical conversions between grams, meters, and cubic centimeters ($cm^3$) across 12 materials (PLA, PETG, ABS, ASA, TPU, PA/Nylon, PC, etc.). Weigh partial spools on a standard kitchen scale and subtract empty spool tare presets (Bambu, Prusa, eSun, Sunlu, Polymaker, Creality, Anycubic) to calculate true net remaining filament and update your stock in one click.
+- **🌡️ Drying & Thermal Temperature Guide** — Instant reference chart for extrusion temps, heated bed settings, drying temperatures, and duration hours for all technical filaments.
+
+---
+
 ## ⚙️ Fully Customizable Settings
 
 Configure theme, language, alert thresholds, restock lead times, and slicer companion behavior — all from a clean settings panel.
@@ -164,10 +175,10 @@ Your data never leaves your computer. No accounts, no cloud, no internet require
 ## 🚀 Quick Start (No Installation Required)
 
 1. Go to **[Releases](https://github.com/Mate1592/FILOTEK_ANYCUBIC/releases)**.
-2. Download **`Filoteca-Portable-1.1.0.exe`**.
+2. Download **`Filoteca-Portable-2.0.0.exe`**.
 3. Double-click to launch — runs from your desktop or a USB drive.
 
-*(An optional installer `Filoteca Setup 1.1.0.exe` is also available if you prefer Start Menu shortcuts).*
+*(An optional installer `Filoteca Setup 2.0.0.exe` is also available if you prefer Start Menu shortcuts).*
 
 ---
 

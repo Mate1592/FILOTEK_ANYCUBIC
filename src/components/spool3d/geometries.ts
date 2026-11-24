@@ -12,6 +12,7 @@ export const SPOOL_CONSTANTS = {
 let cachedFlangeGeometry: THREE.BufferGeometry | null = null;
 let cachedCoreGeometry: THREE.BufferGeometry | null = null;
 let cachedContactShadowGeometry: THREE.BufferGeometry | null = null;
+let cachedContactShadowCanvas: HTMLCanvasElement | null = null;
 
 /**
  * Geometría de disco lateral con celosía hexagonal (panal / honeycomb)
@@ -19,9 +20,7 @@ let cachedContactShadowGeometry: THREE.BufferGeometry | null = null;
  * Permite apreciar nítidamente el bobinado interior y el espacio restante
  * tanto en temas claros como en temas oscuros / modo nocturno.
  */
-export function getFlangeGeometry(): THREE.BufferGeometry {
-  if (cachedFlangeGeometry) return cachedFlangeGeometry;
-
+export function createFlangeGeometry(): THREE.BufferGeometry {
   const { R_MAX, R_HOLE, FLANGE_THICKNESS } = SPOOL_CONSTANTS;
   const shape = new THREE.Shape();
 
@@ -91,34 +90,58 @@ export function getFlangeGeometry(): THREE.BufferGeometry {
     depth: FLANGE_THICKNESS,
     bevelEnabled: false,
     steps: 1,
-    curveSegments: 24,
+    curveSegments: 10,
   };
 
   const geom = new THREE.ExtrudeGeometry(shape, extrudeSettings);
   geom.center(); // Centrar en Z para posicionamiento exacto
-  cachedFlangeGeometry = geom;
   return geom;
 }
 
-/** Geometría del cilindro central de cartón kraft */
-export function getCoreGeometry(): THREE.BufferGeometry {
-  if (cachedCoreGeometry) return cachedCoreGeometry;
+export function getFlangeGeometry(): THREE.BufferGeometry {
+  if (cachedFlangeGeometry) return cachedFlangeGeometry;
+  cachedFlangeGeometry = createFlangeGeometry();
+  return cachedFlangeGeometry;
+}
 
+/** Geometría del cilindro central de cartón kraft */
+export function createCoreGeometry(): THREE.BufferGeometry {
   const { R_CORE, WIDTH } = SPOOL_CONSTANTS;
   const geom = new THREE.CylinderGeometry(R_CORE, R_CORE, WIDTH, 32, 1, true);
   // Rotar el cilindro para que el eje axial coincida con Z
   geom.rotateX(Math.PI / 2);
-  cachedCoreGeometry = geom;
   return geom;
 }
 
+export function getCoreGeometry(): THREE.BufferGeometry {
+  if (cachedCoreGeometry) return cachedCoreGeometry;
+  cachedCoreGeometry = createCoreGeometry();
+  return cachedCoreGeometry;
+}
+
 /** Plano para sombra de contacto en el piso */
-export function getContactShadowGeometry(): THREE.BufferGeometry {
-  if (cachedContactShadowGeometry) return cachedContactShadowGeometry;
+export function createContactShadowGeometry(): THREE.BufferGeometry {
   const geom = new THREE.PlaneGeometry(2.4, 2.4);
   geom.rotateX(-Math.PI / 2);
-  cachedContactShadowGeometry = geom;
   return geom;
+}
+
+export function getContactShadowGeometry(): THREE.BufferGeometry {
+  if (cachedContactShadowGeometry) return cachedContactShadowGeometry;
+  cachedContactShadowGeometry = createContactShadowGeometry();
+  return cachedContactShadowGeometry;
+}
+
+/** Geometría compartida para el anillo indicador de bajo stock / crítico */
+export function createRimGlowGeometry(): THREE.BufferGeometry {
+  const { R_MAX, WIDTH } = SPOOL_CONSTANTS;
+  const pts: THREE.Vector3[] = [];
+  const segs = 48;
+  for (let i = 0; i < segs; i++) {
+    const a = (i / segs) * Math.PI * 2;
+    pts.push(new THREE.Vector3(Math.cos(a) * (R_MAX + 0.02), Math.sin(a) * (R_MAX + 0.02), WIDTH / 2 + 0.02));
+  }
+  return new THREE.BufferGeometry().setFromPoints(pts);
 }
 
 /**
@@ -212,10 +235,9 @@ export function createFilamentGeometry(rFill: number): THREE.BufferGeometry {
   return geom;
 }
 
-/** Textura suave para sombra de contacto en el piso */
-let contactShadowTexture: THREE.CanvasTexture | null = null;
-export function getContactShadowTexture(): THREE.CanvasTexture {
-  if (contactShadowTexture) return contactShadowTexture;
+/** Canvas 2D cacheado globalmente para la sombra de contacto */
+export function getContactShadowCanvas(): HTMLCanvasElement {
+  if (cachedContactShadowCanvas) return cachedContactShadowCanvas;
 
   const canvas = document.createElement('canvas');
   canvas.width = 128;
@@ -231,6 +253,18 @@ export function getContactShadowTexture(): THREE.CanvasTexture {
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, 128, 128);
 
-  contactShadowTexture = new THREE.CanvasTexture(canvas);
+  cachedContactShadowCanvas = canvas;
+  return canvas;
+}
+
+export function createContactShadowTexture(): THREE.CanvasTexture {
+  return new THREE.CanvasTexture(getContactShadowCanvas());
+}
+
+/** Textura suave para sombra de contacto en el piso */
+let contactShadowTexture: THREE.CanvasTexture | null = null;
+export function getContactShadowTexture(): THREE.CanvasTexture {
+  if (contactShadowTexture) return contactShadowTexture;
+  contactShadowTexture = createContactShadowTexture();
   return contactShadowTexture;
 }

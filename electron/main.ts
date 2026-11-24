@@ -19,7 +19,7 @@ import { exec } from 'node:child_process';
 import { pathToFileURL } from 'node:url';
 import { FilotecaDb } from './db';
 import { parseGcodeFileFromDisk } from './gcode';
-import type { Result } from '../src/shared/types';
+import type { FileFilter, GcodeJob, Result, Settings } from '../src/shared/types';
 
 protocol.registerSchemesAsPrivileged([
   { scheme: 'filoteca-media', privileges: { standard: true, secure: true, supportFetchAPI: true, corsEnabled: true } },
@@ -39,6 +39,13 @@ let tray: Tray | null = null;
 let closeToTray = false;
 let quitting = false;
 let db: FilotecaDb;
+let cachedSettings: Partial<Settings> = {};
+function refreshSettingsCache() {
+  cachedSettings = db.getSettings();
+}
+let tempScanTimer: NodeJS.Timeout | null = null;
+let initialTempScanScheduled = false;
+let companionCheckInFlight = false;
 
 // ---------------------------------------------------------------- recursos
 function resource(...p: string[]) {
@@ -129,7 +136,16 @@ function createWindow() {
   });
 
   if (st.maximized) win.maximize();
-  win.once('ready-to-show', () => win?.show());
+  win.once('ready-to-show', () => {
+    win?.show();
+    if (!initialTempScanScheduled) {
+      initialTempScanScheduled = true;
+      tempScanTimer = setTimeout(() => {
+        tempScanTimer = null;
+        void scanRecentTempSlices();
+      }, 1000);
+    }
+  });
 
   let saveT: NodeJS.Timeout | null = null;
   const queueSave = () => {
@@ -340,22 +356,33 @@ function startTempDirWatcher() {
   }
 }
 
-function scanRecentTempSlices() {
+async function scanRecentTempSlices() {
+  if (quitting) return;
   const tempDirs = getSlicerTempDirs();
   try {
-    const files: string[] = [];
-    function walk(dir: string, depth = 0) {
-      if (depth > 5) return;
+    const recentFiles: string[] = [];
+    const cutoffMs = Date.now() - 24 * 3600 * 1000;
+
+    async function walk(dir: string, depth = 0) {
+      if (depth > 5 || quitting) return;
       try {
-        const entries = fs.readdirSync(dir, { withFileTypes: true });
+        const entries = await fs.promises.readdir(dir, { withFileTypes: true });
         for (const ent of entries) {
+          if (quitting) return;
           const full = path.join(dir, ent.name);
           if (ent.isDirectory()) {
-            walk(full, depth + 1);
+            await walk(full, depth + 1);
           } else if (ent.isFile()) {
             const l = ent.name.toLowerCase();
             if (l.endsWith('.gcode.metadata') || (l.endsWith('.gcode') && !l.endsWith('.tmp'))) {
-              files.push(full);
+              try {
+                const stat = await fs.promises.stat(full);
+                if (stat.mtimeMs > cutoffMs) {
+                  recentFiles.push(full);
+                }
+              } catch {
+                /* ignore */
+              }
             }
           }
         }
@@ -365,28 +392,31 @@ function scanRecentTempSlices() {
     }
 
     for (const tempDir of tempDirs) {
-      if (fs.existsSync(tempDir)) {
-        walk(tempDir);
-      }
+      if (quitting) return;
+      await walk(tempDir);
     }
+
+    if (recentFiles.length === 0 || quitting) return;
 
     const snapshot = db.load();
     const existingJobHashes = new Set(snapshot.gcodeJobs.map((j) => j.fileHash || j.filepath));
 
-    for (const file of files) {
+    for (const file of recentFiles) {
+      if (quitting) return;
+      await new Promise<void>((r) => setImmediate(r));
+      if (quitting) return;
       try {
-        const stat = fs.statSync(file);
-        // Filtrar archivos de las últimas 24 horas
-        if (Date.now() - stat.mtimeMs < 24 * 3600 * 1000) {
-          const job = parseGcodeFileFromDisk(
-            file,
-            getThumbnailsDir(),
-            snapshot.rolls,
-            snapshot.settings.rememberedMappings,
-          );
-          if (job && !existingJobHashes.has(job.fileHash) && !existingJobHashes.has(job.filepath)) {
-            existingJobHashes.add(job.fileHash);
-            db.upsertGcodeJob(job);
+        const job = parseGcodeFileFromDisk(
+          file,
+          getThumbnailsDir(),
+          snapshot.rolls,
+          snapshot.settings.rememberedMappings,
+        );
+        if (job && !existingJobHashes.has(job.fileHash) && !existingJobHashes.has(job.filepath)) {
+          existingJobHashes.add(job.fileHash);
+          db.upsertGcodeJob(job);
+          if (win && !win.isDestroyed()) {
+            win.webContents.send('gcode-imported', job);
           }
         }
       } catch {
@@ -409,7 +439,7 @@ function checkSlicerRunning(targetExe: string): Promise<boolean> {
       ? ['anycubicslicernext.exe', 'orca-slicer.exe', 'orcaslicer.exe', 'bambustudio.exe']
       : [cleanExe.toLowerCase()];
 
-    exec('tasklist /fo csv /nh', (err, stdout) => {
+    exec('tasklist /fo csv /nh', { windowsHide: true, timeout: 4000 }, (err, stdout) => {
       if (err || !stdout) return resolve(false);
       const lowerOut = stdout.toLowerCase();
       const isRunning = targets.some((t) => lowerOut.includes(t));
@@ -422,10 +452,14 @@ function startCompanionWatcher() {
   if (companionCheckInterval) clearInterval(companionCheckInterval);
 
   companionCheckInterval = setInterval(async () => {
+    if (quitting || companionCheckInFlight) return;
+    companionCheckInFlight = true;
     try {
-      const snapshot = db.load();
-      const settings = snapshot.settings;
-      if (settings.companionModeEnabled === false) return;
+      const settings = cachedSettings;
+      if (settings.companionModeEnabled === false) {
+        slicerRunning = false;
+        return;
+      }
 
       const targetExe = settings.companionSlicerExe || 'AnycubicSlicerNext.exe';
       const isNowRunning = await checkSlicerRunning(targetExe);
@@ -440,7 +474,7 @@ function startCompanionWatcher() {
             createWindow();
           }
           const w = win as BrowserWindow | null;
-          if (w) {
+          if (w && !w.isDestroyed()) {
             if (!w.isVisible() || w.isMinimized()) {
               w.showInactive();
               openedByCompanion = true;
@@ -451,26 +485,28 @@ function startCompanionWatcher() {
         // Slicer acaba de cerrarse
         slicerRunning = false;
 
-        const unreviewed = db.load().gcodeJobs.filter((j) => j.status === 'unreviewed');
-        if (unreviewed.length > 0 && settings.companionPromptOnExit !== false) {
-          if (win) {
+        const unreviewedCount = db.countUnreviewedGcodeJobs();
+        if (unreviewedCount > 0 && settings.companionPromptOnExit !== false) {
+          if (win && !win.isDestroyed()) {
             if (win.isMinimized()) win.restore();
             win.show();
             win.focus();
             win.webContents.send('slicer-closed-prompt', {
-              unreviewedCount: unreviewed.length,
+              unreviewedCount,
               sessionJobsCount: companionSessionCount,
             });
           }
-        } else if (openedByCompanion && settings.companionAutoClose && unreviewed.length === 0) {
+        } else if (openedByCompanion && settings.companionAutoClose && unreviewedCount === 0) {
           quitting = true;
           app.quit();
         }
       }
     } catch {
       /* ignore */
+    } finally {
+      companionCheckInFlight = false;
     }
-  }, 2500);
+  }, 5000);
 }
 
 function registerIpc() {
@@ -489,6 +525,7 @@ function registerIpc() {
   handle('db:deleteGcodeJob', (id) => db.deleteGcodeJob(id));
   handle('db:setSetting', (k, v) => {
     db.setSetting(k, v);
+    refreshSettingsCache();
     if (k === 'watchedGcodeFolder') {
       setupWatchedFolder(String(v || ''));
     }
@@ -516,6 +553,8 @@ function registerIpc() {
     });
     if (r.canceled || !r.filePaths[0]) return false;
     db.restoreFrom(r.filePaths[0]);
+    refreshSettingsCache();
+    setupWatchedFolder(cachedSettings.watchedGcodeFolder || '');
     return true;
   });
 
@@ -538,6 +577,50 @@ function registerIpc() {
     return { name: path.basename(p), content: fs.readFileSync(p, 'utf8') };
   });
 
+  ipcMain.handle('file:openMultiple', async (_e, filters?: FileFilter[]): Promise<string[]> => {
+    try {
+      const activeWin = win && !win.isDestroyed() ? win : undefined;
+      const defaultFilters: FileFilter[] = [
+        { name: 'Archivos de laminador (.gcode, .3mf, .metadata)', extensions: ['gcode', '3mf', 'metadata'] },
+        { name: 'Todos los archivos', extensions: ['*'] },
+      ];
+      const opts: Electron.OpenDialogOptions = {
+        properties: ['openFile', 'multiSelections'],
+        filters: filters && filters.length > 0 ? filters : defaultFilters,
+      };
+      const r = activeWin ? await dialog.showOpenDialog(activeWin, opts) : await dialog.showOpenDialog(opts);
+      return r.canceled ? [] : r.filePaths;
+    } catch (err) {
+      console.error('[ipc] file:openMultiple', err);
+      return [];
+    }
+  });
+
+  ipcMain.handle(
+    'file:saveTextFile',
+    async (
+      _e,
+      opts: { defaultName: string; content: string; filters?: FileFilter[] },
+    ): Promise<{ ok: boolean; path?: string }> => {
+      try {
+        const activeWin = win && !win.isDestroyed() ? win : undefined;
+        const dialogOpts: Electron.SaveDialogOptions = {
+          defaultPath: path.join(app.getPath('documents'), opts?.defaultName || 'export.txt'),
+          filters: opts?.filters,
+        };
+        const r = activeWin
+          ? await dialog.showSaveDialog(activeWin, dialogOpts)
+          : await dialog.showSaveDialog(dialogOpts);
+        if (r.canceled || !r.filePath) return { ok: false };
+        await fs.promises.writeFile(r.filePath, opts?.content ?? '', 'utf8');
+        return { ok: true, path: r.filePath };
+      } catch (err) {
+        console.error('[ipc] file:saveTextFile', err);
+        return { ok: false };
+      }
+    },
+  );
+
   handle('file:selectFolder', async () => {
     const r = await dialog.showOpenDialog(win!, { properties: ['openDirectory'] });
     if (r.canceled || !r.filePaths[0]) return null;
@@ -549,10 +632,23 @@ function registerIpc() {
     return parseGcodeFileFromDisk(filepath, getThumbnailsDir(), snapshot.rolls, snapshot.settings.rememberedMappings);
   });
 
+  handle('file:parseGcodeBatch', async (filepaths: string[]): Promise<GcodeJob[]> => {
+    if (!Array.isArray(filepaths) || filepaths.length === 0) return [];
+    const snapshot = db.load();
+    const thumbsDir = getThumbnailsDir();
+    const jobs: GcodeJob[] = [];
+    for (const fp of filepaths) {
+      if (typeof fp !== 'string' || !fp) continue;
+      const job = parseGcodeFileFromDisk(fp, thumbsDir, snapshot.rolls, snapshot.settings.rememberedMappings);
+      if (job) jobs.push(job);
+    }
+    return jobs;
+  });
+
   handle('companion:listProcesses', async () => {
     return new Promise((resolve) => {
       if (process.platform !== 'win32') return resolve([]);
-      exec('tasklist /fo csv /nh', (_err, stdout) => {
+      exec('tasklist /fo csv /nh', { windowsHide: true, timeout: 4000 }, (_err, stdout) => {
         if (!stdout) return resolve([]);
         const lines = stdout.split(/\r?\n/);
         const matches: string[] = [];
@@ -572,9 +668,8 @@ function registerIpc() {
   });
 
   handle('companion:closeIfFinished', async () => {
-    const snapshot = db.load();
-    const unreviewed = snapshot.gcodeJobs.filter((j) => j.status === 'unreviewed').length;
-    if (openedByCompanion && unreviewed === 0 && snapshot.settings.companionAutoClose) {
+    const unreviewed = db.countUnreviewedGcodeJobs();
+    if (openedByCompanion && unreviewed === 0 && cachedSettings.companionAutoClose) {
       quitting = true;
       app.quit();
     }
@@ -631,8 +726,15 @@ if (!app.requestSingleInstanceLock()) {
   });
 
   app.whenReady().then(async () => {
+    const MEDIA_MIME: Record<string, string> = {
+      '.png': 'image/png',
+      '.jpg': 'image/jpeg',
+      '.jpeg': 'image/jpeg',
+      '.webp': 'image/webp',
+      '.svg': 'image/svg+xml',
+    };
     try {
-      protocol.handle('filoteca-media', (request) => {
+      protocol.handle('filoteca-media', async (request) => {
         try {
           const urlObj = new URL(request.url);
           let targetPath = urlObj.searchParams.get('path');
@@ -642,19 +744,35 @@ if (!app.requestSingleInstanceLock()) {
             targetPath = decodeURIComponent(raw);
             if (/^\/[a-zA-Z]:/.test(targetPath)) targetPath = targetPath.slice(1);
           }
-          if (targetPath && fs.existsSync(targetPath)) {
-            const buf = fs.readFileSync(targetPath);
-            return new Response(buf, {
-              headers: {
-                'Content-Type': 'image/png',
-                'Cache-Control': 'public, max-age=86400',
-              },
-            });
+          if (!targetPath) return new Response('Not found', { status: 404 });
+
+          const thumbsRoot = path.resolve(getThumbnailsDir());
+          const resolvedTarget = path.resolve(targetPath);
+          const rel = path.relative(thumbsRoot, resolvedTarget);
+          if (rel === '' || rel.startsWith('..') || path.isAbsolute(rel)) {
+            return new Response('Forbidden', { status: 403 });
           }
-        } catch {
-          /* ignore */
+
+          const ext = path.extname(resolvedTarget).toLowerCase();
+          const mime = MEDIA_MIME[ext];
+          if (!mime) {
+            return new Response('Forbidden', { status: 403 });
+          }
+
+          const buf = await fs.promises.readFile(resolvedTarget);
+          return new Response(buf, {
+            headers: {
+              'Content-Type': mime,
+              'Cache-Control': 'public, max-age=86400',
+            },
+          });
+        } catch (err) {
+          const code = (err as NodeJS.ErrnoException)?.code;
+          if (code === 'ENOENT' || code === 'ENOTDIR' || code === 'EISDIR') {
+            return new Response('Not found', { status: 404 });
+          }
+          return new Response('Not found', { status: 404 });
         }
-        return new Response('Not found', { status: 404 });
       });
     } catch (e) {
       console.warn('[protocol] Could not register filoteca-media:', e);
@@ -667,22 +785,21 @@ if (!app.requestSingleInstanceLock()) {
     } catch (err) {
       dialog.showErrorBox('Filoteca', `No se pudo abrir la base de datos:\n${(err as Error).message}`);
     }
+    refreshSettingsCache();
     registerIpc();
     createWindow();
 
     // Activa carpeta vigilada si está configurada
     try {
-      const snapshot = db.load();
-      if (snapshot.settings.watchedGcodeFolder) {
-        setupWatchedFolder(snapshot.settings.watchedGcodeFolder);
+      if (cachedSettings.watchedGcodeFolder) {
+        setupWatchedFolder(cachedSettings.watchedGcodeFolder);
       }
     } catch {
       /* ignore */
     }
 
-    // Iniciar watchers e ingestión automática
+    // Iniciar watchers e ingestión automática (escaneo inicial diferido post ready-to-show)
     startTempDirWatcher();
-    scanRecentTempSlices();
     startCompanionWatcher();
 
     // Comprueba argumento CLI en el primer arranque
@@ -708,6 +825,14 @@ if (!app.requestSingleInstanceLock()) {
 
   app.on('before-quit', () => {
     quitting = true;
+    if (tempScanTimer) {
+      clearTimeout(tempScanTimer);
+      tempScanTimer = null;
+    }
+    if (companionCheckInterval) {
+      clearInterval(companionCheckInterval);
+      companionCheckInterval = null;
+    }
     try {
       db?.flushNow();
     } catch {
